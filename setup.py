@@ -10,6 +10,10 @@ setup(
     author_email='shreeyak.sajjan@gmail.com',
     # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
     url='https://github.com/Shreeyak/pytorch-lightning-segmentation-lapa',
-    install_requires=['pytorch-lightning'],
+    install_requires=[
+        'pytorch-lightning>=1.0.0rc2',
+        'torch==1.6.0',
+        'torchvision==0.7.0'
+    ],
     packages=find_packages(),
 )
