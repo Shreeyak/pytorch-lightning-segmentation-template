@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
-from modeling.aspp import build_aspp
-from modeling.decoder import build_decoder
-from modeling.backbone import build_backbone
 from torch.cuda.amp import autocast
+
+from .aspp import build_aspp
+from .backbone import build_backbone
+from .decoder import build_decoder
+from .sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+
 
 class DeepLab(nn.Module):
     def __init__(self, backbone='drn', output_stride=8, num_classes=11,
@@ -83,9 +85,10 @@ class DeepLab(nn.Module):
                             if p.requires_grad:
                                 yield p
 
+
 if __name__ == "__main__":
     model = DeepLab(backbone='drn', output_stride=8)
     model.eval()
-    input = torch.rand(1, 3, 513, 513)
-    output = model(input)
+    inputs = torch.rand(1, 3, 512, 512)
+    output = model(inputs)
     print(output.size())
