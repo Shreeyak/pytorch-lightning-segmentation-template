@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='seg-lapa',
+    name='seg_lapa',
     version='0.1.0',
     description='Semantic Segmentation on the LaPa dataset using Pytorch Lightning',
     author='shreeyak',

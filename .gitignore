@@ -1,5 +1,7 @@
 # Custom
-.idea
+lightning_logs/
+MNIST
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -109,11 +111,11 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder seg-lapa settings
+# Spyder project settings
 .spyderproject
 .spyproject
 
-# Rope seg-lapa settings
+# Rope project settings
 .ropeproject
 
 # mkdocs documentation
@@ -125,8 +127,3 @@ venv.bak/
 # IDEs
 .idea
 .vscode
-
-# seed seg-lapa
-lightning_logs/
-MNIST
-.DS_Store
