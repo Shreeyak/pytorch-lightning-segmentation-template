@@ -1,0 +1,6 @@
+# @package _group_
+deeplabv3:
+    # Possible values for backbone: ['xception', 'resnet', 'drn']
+    backbone: "drn"
+    output_stride: 8  # Not used with 'drn' backbone
+    num_classes: 11

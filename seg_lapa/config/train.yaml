@@ -1,0 +1,19 @@
+batch_size:
+  train: 8
+  test: 8
+num_steps: 100
+
+
+defaults:
+    - optimizer: adam
+    - scheduler: disabled
+    - model: deeplabv3
+    - dataset: lapa
+    # To disable any .log files
+    - hydra/job_logging: disabled
+    - hydra/hydra_logging: disabled
+
+hydra:
+    output_subdir: null  # Disable saving of config files. We'll do that ourselves.
+    run:
+        dir: .  # Set working dir to current directory

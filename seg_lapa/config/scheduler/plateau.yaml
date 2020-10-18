@@ -1,0 +1,24 @@
+# @package _group_
+# Reduce learning rate when a metric has no improvement for a ‘patience’ number of epochs.
+# Models often benefit from reducing the learning rate by a factor of 2-10 once learning stagnates.
+plateau:
+  # Factor by which the learning rate will be reduced. new_lr = lr * factor.
+  factor: 0.8
+
+  # Number of epochs with no improvement after which learning rate will be reduced.
+  patience: 25
+
+  # A lower bound on the learning rate of all param groups or each group respectively
+  min_lr: 1e-7
+
+  # One of min, max. In min mode, lr change when metric stops decreasing; in max mode when metric stops increasing.
+  mode: 'min'
+
+  # Threshold for measuring the new optimum, to only focus on significant changes.
+  threshold: 1e-4
+
+  # Number of epochs to wait before resuming normal operation after lr has been reduced.
+  cooldown: 0
+
+  # If True, prints a message to stdout for each update.
+  verbose: False
