@@ -34,7 +34,7 @@ class DeeplabV3plus(pl.LightningModule):
         # to aggregate epoch metrics use self.log or a metric. self.log logs metrics for each training_step.
         # It also logs the average across the epoch, to the progress bar and logger
         # "train_loss" is a reserved keyword
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         return loss
 
@@ -63,16 +63,18 @@ def main(cfg: DictConfig):
     lapa_val = LapaDataset(image_dir=cfg.dataset.lapa.val.image_dir, label_dir=cfg.dataset.lapa.val.label_dir,
                            augmentations=augs_test)
 
-    train_loader = DataLoader(lapa_train, batch_size=cfg.batch_size.train, num_workers=4)
-    val_loader = DataLoader(lapa_test, batch_size=cfg.batch_size.test, num_workers=4)
-    test_loader = DataLoader(lapa_val, batch_size=cfg.batch_size.test, num_workers=4)
+    train_loader = DataLoader(lapa_train, batch_size=cfg.batch_size.train, num_workers=0, pin_memory=True)
+    val_loader = DataLoader(lapa_test, batch_size=cfg.batch_size.test, num_workers=0, pin_memory=True)
+    test_loader = DataLoader(lapa_val, batch_size=cfg.batch_size.test, num_workers=0, pin_memory=True)
 
-    trainer = pl.Trainer(gpus=[1], overfit_batches=0.0,
+    trainer = pl.Trainer(gpus=[0, 1], overfit_batches=0.0,
+                         distributed_backend="ddp", num_nodes=1,
+                         precision=16,
                          limit_train_batches=cfg.dataset.lapa.train.use_factor,
                          limit_val_batches=cfg.dataset.lapa.val.use_factor,
                          limit_test_batches=cfg.dataset.lapa.test.use_factor,
                          max_steps=cfg.num_steps,
-                         fast_dev_run=False,
+                         fast_dev_run=True,
                          )
     trainer.fit(model, train_loader, val_loader)
 
