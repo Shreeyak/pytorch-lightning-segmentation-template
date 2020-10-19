@@ -1,18 +1,12 @@
 # @package _group_
 lapa:
-  root_dir: '/media/shrek/work/datasets/public/LaPa'
+  root_dir: 'data/LaPa'
 
   train:
-    image_dir: ${dataset.lapa.root_dir}/train/images
-    label_dir: ${dataset.lapa.root_dir}/train/labels
-    use_factor: 1.0
+    use_factor: 0.01  # What percentage of the dataset to use
 
   val:
-    image_dir: ${dataset.lapa.root_dir}/val/images
-    label_dir: ${dataset.lapa.root_dir}/val/labels
-    use_factor: 1.0
+    use_factor: 0.1  # What percentage of the dataset to use
 
   test:
-    image_dir: ${dataset.lapa.root_dir}/test/images
-    label_dir: ${dataset.lapa.root_dir}/test/labels
-    use_factor: 1.0
+    use_factor: 0.1  # What percentage of the dataset to use

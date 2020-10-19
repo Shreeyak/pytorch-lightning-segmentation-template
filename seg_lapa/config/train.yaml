@@ -1,7 +1,7 @@
 batch_size:
-  train: 8
-  test: 8
-num_steps: 100
+  train: 16
+  test: 16
+num_steps: 10000
 
 
 defaults:

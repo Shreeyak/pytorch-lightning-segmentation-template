@@ -9,14 +9,15 @@ setup(
     author='shreeyak',
     author_email='shreeyak.sajjan@gmail.com',
     # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
-    url='https://github.com/Shreeyak/pytorch-lightning-segmentation-lapa',
+    url='https://github.com/Shreeyak/pytorch-lightning-segmentation-template',
+    python_requires='>=3.7',
     install_requires=[
         'pytorch-lightning==1.0.2',
         'torch==1.6.0',
         'torchvision==0.7.0',
         'gdown==3.12.2',
         'albumentations==0.4.6',
-        'opencv-python==4.4.0',
+        'opencv-python==4.4.0.44',
         'hydra-core==1.0.3',
         'wandb==0.10.7',
     ],
