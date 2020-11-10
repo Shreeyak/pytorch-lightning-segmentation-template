@@ -40,7 +40,7 @@ default/
 data/
 test_tube_logs/
 test_tube_data/
-datasets/
+#datasets/  # dir in code called datasets.
 model_weights/
 tests/save_dir  
 tests/tests_tt_dir/
