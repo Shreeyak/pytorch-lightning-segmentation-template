@@ -1,4 +1,5 @@
 # @package _group_
 adam:
+    _target_: "seg_lapa.config_parse.optimizer_conf.AdamConf"
     lr: 1e-3
     weight_decay: 0.0005

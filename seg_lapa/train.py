@@ -1,16 +1,15 @@
-import albumentations as A
 import torch
 import pytorch_lightning as pl
 import hydra
 import wandb
 from omegaconf import OmegaConf, DictConfig
-from torch.utils.data import DataLoader
+from hydra.utils import instantiate
 from pathlib import Path
 
 from seg_lapa.networks.deeplab.deeplab import DeepLab
 from seg_lapa.loss_func import CrossEntropy2D
-from seg_lapa.dataloaders import LapaDataset, DatasetSplit
-
+from seg_lapa.datasets.lapa import LaPaDataModule
+from seg_lapa.config_parse.train_conf import TrainConfig
 
 class DeeplabV3plus(pl.LightningModule):
 
@@ -45,44 +44,28 @@ class DeeplabV3plus(pl.LightningModule):
 
 
 @hydra.main(config_path='config', config_name='train')
-def main(cfg: DictConfig):
+def main(cfg: TrainConfig):
+    print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
+    print(cfg)
+
     model = DeeplabV3plus()
 
     # Dataloaders
-    resize_h = 256
-    resize_w = 256
-    augs_test = A.Compose([
-        # Geometric Augs
-        A.SmallestMaxSize(max_size=resize_h, interpolation=0, p=1.0),
-        A.CenterCrop(height=resize_h, width=resize_w, p=1.0),
-    ])
+    data_conf = instantiate(cfg.dataset)
+    dm = data_conf.get_datamodule()
+    print(dm)
+    exit()
 
-    # Because python package can be launched from anywhere, relative paths need to be handled correctly
-    if not Path(cfg.dataset.lapa.root_dir).is_absolute():
-        data_root_dir = Path(__file__).parent / cfg.dataset.lapa.root_dir
-    else:
-        data_root_dir = cfg.dataset.lapa.root_dir
-    lapa_train = LapaDataset(root_dir=data_root_dir, data_split=DatasetSplit.TRAIN,
-                             augmentations=augs_test)
-    lapa_test = LapaDataset(root_dir=data_root_dir, data_split=DatasetSplit.VAL,
-                            augmentations=augs_test)
-    lapa_val = LapaDataset(root_dir=data_root_dir, data_split=DatasetSplit.TEST,
-                           augmentations=augs_test)
-
-    train_loader = DataLoader(lapa_train, batch_size=cfg.batch_size.train, num_workers=6, pin_memory=True)
-    val_loader = DataLoader(lapa_test, batch_size=cfg.batch_size.test, num_workers=6, pin_memory=True)
-    test_loader = DataLoader(lapa_val, batch_size=cfg.batch_size.test, num_workers=6, pin_memory=True)
-
-    trainer = pl.Trainer(gpus=[0, 1], overfit_batches=0.0,
+    trainer = pl.Trainer(gpus=[0], overfit_batches=0.0,
                          distributed_backend="ddp", num_nodes=1,
                          precision=32,
-                         limit_train_batches=cfg.dataset.lapa.train.use_factor,
-                         limit_val_batches=cfg.dataset.lapa.val.use_factor,
-                         limit_test_batches=cfg.dataset.lapa.test.use_factor,
+                         limit_train_batches=1.0,
+                         limit_val_batches=1.0,
+                         limit_test_batches=1.0,
                          max_steps=cfg.num_steps,
                          fast_dev_run=False,
                          )
-    trainer.fit(model, train_loader, val_loader)
+    trainer.fit(model, datamodule=dm)
 
     result = trainer.test(test_dataloaders=test_loader)
     print(result)

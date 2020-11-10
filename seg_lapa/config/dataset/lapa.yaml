@@ -1,12 +1,8 @@
 # @package _group_
-lapa:
-  root_dir: 'data/LaPa'
-
-  train:
-    use_factor: 0.01  # What percentage of the dataset to use
-
-  val:
-    use_factor: 0.1  # What percentage of the dataset to use
-
-  test:
-    use_factor: 0.1  # What percentage of the dataset to use
+#lapa:
+_target_: "seg_lapa.config_parse.dataset_conf.LapaConf"
+data_dir: 'data/LaPa'
+batch_size: 16
+num_workers: 4
+resize_h: 256
+resize_w: 256

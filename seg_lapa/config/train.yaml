@@ -1,14 +1,12 @@
-batch_size:
-  train: 16
-  test: 16
+
 num_steps: 10000
 
-
 defaults:
-    - optimizer: adam
-    - scheduler: disabled
-    - model: deeplabv3
     - dataset: lapa
+    - optimizer: adam
+#    - scheduler: disabled
+#    - model: deeplabv3
+
     # To disable any .log files
     - hydra/job_logging: disabled
     - hydra/hydra_logging: disabled
