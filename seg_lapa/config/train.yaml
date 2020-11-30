@@ -1,9 +1,7 @@
 
-num_steps: 10000
-
 defaults:
     - dataset: lapa
-    - optimizer: adam
+#    - optimizer: adam
 #    - scheduler: disabled
 #    - model: deeplabv3
 
