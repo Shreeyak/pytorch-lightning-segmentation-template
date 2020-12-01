@@ -1,24 +1,18 @@
-from dataclasses import dataclass
 from typing import Any
 
-from hydra.core.config_store import ConfigStore
-from omegaconf import MISSING
+from pydantic.dataclasses import dataclass
 
-from seg_lapa.config_parse.dataset_conf import DatasetConf
-from seg_lapa.config_parse.optimizer_conf import OptimConf
+from seg_lapa.config_parse.dataset_conf import DatasetConf, get_dataconf
+from seg_lapa.config_parse.optimizer_conf import OptimConf, get_optimconf
+
 
 @dataclass
-class TrainConfig:
-    num_steps: int = MISSING
-    dataset: Any = MISSING
-    optimizer: Any = MISSING
-    # scheduler: Any = MISSING
-    # model: Any = MISSING
+class TrainConf:
+    dataset: DatasetConf
+    optimizer: OptimConf
+    # scheduler: Any
+    # model: Any
 
-    # trainer: Any = MISSING
-    # loggers: Any = MISSING
-
-
-cs = ConfigStore.instance()
-cs.store(name="train", node=TrainConfig)
-
+    # trainer: Any
+    # loggers: Any
+    # num_steps: int

@@ -1,6 +1,5 @@
 # @package _group_
-#lapa:
-_target_: "seg_lapa.config_parse.dataset_conf.LapaConf"
+name: lapa
 data_dir: 'data/LaPa'
 batch_size: 16
 num_workers: 4
