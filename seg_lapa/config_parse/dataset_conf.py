@@ -38,7 +38,7 @@ valid_options = {
 }
 
 
-def get_dataconf(cfg_dataset: DictConfig) -> DatasetConf:
+def validate_dataconf(cfg_dataset: DictConfig) -> DatasetConf:
     try:
         dataconf = valid_options[cfg_dataset.name](**cfg_dataset)
     except KeyError:

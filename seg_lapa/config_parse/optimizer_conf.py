@@ -50,7 +50,7 @@ valid_options = {
 }
 
 
-def get_optimconf(cfg_optim: DictConfig) -> OptimConf:
+def validate_optimconf(cfg_optim: DictConfig) -> OptimConf:
     try:
         optimconf = valid_options[cfg_optim.name](**cfg_optim)
     except KeyError:

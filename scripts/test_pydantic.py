@@ -1,17 +1,8 @@
 import torch
 import hydra
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import OmegaConf
 
-from seg_lapa.config_parse.train_conf import TrainConf, get_dataconf, get_optimconf
-
-
-def parse_config(cfg: DictConfig) -> TrainConf:
-    config = TrainConf(
-        dataset=get_dataconf(cfg.dataset),
-        optimizer=get_optimconf(cfg.optimizer)
-    )
-
-    return config
+from seg_lapa.config_parse import train_conf
 
 
 class FakeModel(torch.nn.Module):
@@ -30,7 +21,7 @@ def main(cfg):
     print(OmegaConf.to_yaml(cfg))
 
     print('\nParsed Datamodule:')
-    config = parse_config(cfg)
+    config = train_conf.parse_config(cfg)
     print(config)
 
     print('\nInitialized Datamodule:')
