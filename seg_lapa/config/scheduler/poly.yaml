@@ -1,0 +1,9 @@
+# @package _group_
+# The base lr decrease smoothly upto max_iter as a polynomial func
+#   lr = base_lr * (1 - current_iter / max_iter) ^ pow_factor
+poly:
+  # Maximum number of iterations for which training will run
+  max_iter: 500
+
+  # The polinomial factor per formula above
+  pow_factor: 0.9

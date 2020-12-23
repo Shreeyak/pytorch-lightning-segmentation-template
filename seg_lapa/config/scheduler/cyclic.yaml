@@ -1,0 +1,15 @@
+# @package _group_
+# Sets the learning rate of each parameter group according to cyclical learning rate policy (CLR).
+# The policy cycles the learning rate between two boundaries with a constant frequency
+cyclic:
+  #  Initial learning rate which is the lower boundary in the cycle for each parameter group.
+  base_lr: 0.0001
+
+  # Upper learning rate boundaries in the cycle for each parameter group.
+  max_lr: 0.01
+
+  # Number of training iterations in the increasing half of a cycle. Should be set to 2-10 times the number of iterations in an epoch
+  step_size_up: 20
+
+  # Number of training iterations in the decreasing half of a cycle. If step_size_down is None, it is set to step_size_up.
+  step_size_down: null
