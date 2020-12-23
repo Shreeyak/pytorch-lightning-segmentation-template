@@ -8,4 +8,4 @@ precision: 32
 limit_train_batches: 1.0
 limit_val_batches: 1.0
 limit_test_batches: 1.0
-fast_dev_run: False
+fast_dev_run: True
