@@ -7,7 +7,7 @@ from pydantic.dataclasses import dataclass
 
 @dataclass
 class TrainerConf(ABC):
-    # name: str
+    name: str
 
     @abstractmethod
     def get_trainer(self) -> pl.Trainer:
@@ -29,6 +29,7 @@ class TrainerConfig(TrainerConf):
     def get_trainer(self) -> pl.Trainer:
         # Clean the arguments
         args = vars(self)
+        args.pop('name')
         args.pop("__initialised__")
 
         trainer = pl.Trainer(**args)
@@ -36,12 +37,11 @@ class TrainerConfig(TrainerConf):
         return trainer
 
 
-valid_options = {"trainer": TrainerConf}
+valid_options = {"trainer": TrainerConfig}
 
 
 def validate_trainerconf(cfg_trainer: DictConfig) -> TrainerConf:
     try:
-
         trainerconf = valid_options[cfg_trainer.name](**cfg_trainer)
     except KeyError:
         raise ValueError(

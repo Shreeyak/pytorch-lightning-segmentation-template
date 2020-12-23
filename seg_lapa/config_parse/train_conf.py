@@ -1,9 +1,9 @@
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
-from config_parse.dataset_conf import DatasetConf, validate_dataconf
-from config_parse.optimizer_conf import OptimConf, validate_optimconf
-from config_parse.trainer_conf import TrainerConf, validate_trainerconf
+from seg_lapa.config_parse.dataset_conf import DatasetConf, validate_dataconf
+from seg_lapa.config_parse.optimizer_conf import OptimConf, validate_optimconf
+from seg_lapa.config_parse.trainer_conf import TrainerConf, validate_trainerconf
 
 
 @dataclass

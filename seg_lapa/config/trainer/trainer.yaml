@@ -1,5 +1,5 @@
 # @package _group_
-_target_: "config_parse.trainer_conf.TrainerConfig"
+name: trainer
 gpus: "0"
 overfit_batches: 0.0
 distributed_backend: "ddp"

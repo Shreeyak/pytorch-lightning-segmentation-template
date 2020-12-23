@@ -22,8 +22,8 @@ class AdamConf(OptimConf):
     def get_optimizer(self, model_params) -> torch.optim.Optimizer:
         # Clean the arguments
         args = vars(self)
-        args.pop('name')
-        args.pop('__initialised__')
+        args.pop('name', None)
+        args.pop('__initialised__', None)
 
         return torch.optim.Adam(params=model_params, **args)
 
@@ -38,8 +38,8 @@ class SgdConf(OptimConf):
     def get_optimizer(self, model_params) -> torch.optim.Optimizer:
         # Clean the arguments
         args = vars(self)
-        args.pop('name')
-        args.pop('__initialised__')
+        args.pop('name', None)
+        args.pop('__initialised__', None)
 
         return torch.optim.SGD(params=model_params, **args)
 

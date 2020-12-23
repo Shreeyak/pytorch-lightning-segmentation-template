@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
-from datasets.lapa import LaPaDataModule
+from seg_lapa.datasets.lapa import LaPaDataModule
 
 
 @dataclass

@@ -6,18 +6,21 @@ from omegaconf import OmegaConf, DictConfig
 from hydra.utils import instantiate
 from pathlib import Path
 
-from networks.deeplab.deeplab import DeepLab
-from loss_func import CrossEntropy2D
-from datasets.lapa import LaPaDataModule
-from config_parse.train_conf import TrainConf
+from seg_lapa.networks.deeplab.deeplab import DeepLab
+from seg_lapa.loss_func import CrossEntropy2D
+from seg_lapa.config_parse.train_conf import TrainConf
+
+from seg_lapa.config_parse import train_conf
+
 
 class DeeplabV3plus(pl.LightningModule):
 
-    def __init__(self):
+    def __init__(self, config: TrainConf):
         super().__init__()
         self.model = DeepLab(backbone='drn', output_stride=8, num_classes=11,
                              sync_bn=False, enable_amp=False)
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
+        self.config = config
 
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions
@@ -61,7 +64,7 @@ class DeeplabV3plus(pl.LightningModule):
         }
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = self.config.optimizer.get_optimizer(self.parameters())
         return optimizer
 
 
@@ -70,14 +73,12 @@ def main(cfg: TrainConf):
     print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
     print(cfg)
 
-    model = DeeplabV3plus()
+    config = train_conf.parse_config(cfg)
 
-    # Dataloaders
-    data_conf = instantiate(cfg.dataset)
-    dm = data_conf.get_datamodule()
+    model = DeeplabV3plus(config)
 
-    trainer_conf = instantiate(cfg.trainer)
-    trainer = trainer_conf.get_trainer()
+    trainer = config.trainer.get_trainer()
+    dm = config.dataset.get_datamodule()
 
     trainer.fit(model, datamodule=dm)
 
