@@ -38,6 +38,28 @@ class DeeplabV3plus(pl.LightningModule):
 
         return loss
 
+    def validation_step(self, batch, batch_idx):
+        inputs, labels = batch
+        outputs = self.model(inputs)
+        loss = self.cross_entropy_loss(outputs, labels)
+
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        return {
+            'val_loss': loss,
+        }
+
+    def test_step(self, batch, batch_idx):
+        inputs, labels = batch
+        outputs = self.model(inputs)
+        loss = self.cross_entropy_loss(outputs, labels)
+
+        self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        return {
+            'test_loss': loss,
+        }
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
@@ -53,15 +75,14 @@ def main(cfg: TrainConf):
     # Dataloaders
     data_conf = instantiate(cfg.dataset)
     dm = data_conf.get_datamodule()
-    print(dm)
 
     trainer_conf = instantiate(cfg.trainer)
     trainer = trainer_conf.get_trainer()
 
     trainer.fit(model, datamodule=dm)
 
-    # result = trainer.test(test_dataloaders=test_loader)
-    # print(result)
+    result = trainer.test()
+    print(result)
 
 
 if __name__ == '__main__':
