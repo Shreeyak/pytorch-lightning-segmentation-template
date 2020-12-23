@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional, Union, List
 
 import pytorch_lightning as pl
 from omegaconf import DictConfig
@@ -16,15 +17,16 @@ class TrainerConf(ABC):
 
 @dataclass
 class TrainerConfig(TrainerConf):
-    gpus: str
-    overfit_batches: float
-    distributed_backend: str
-    num_nodes: int
+    gpus: Union[int, str, List[int]]
+    overfit_batches: Union[int, float]
+    distributed_backend: Optional[str]
     precision: int
-    limit_train_batches: float
-    limit_val_batches: float
-    limit_test_batches: float
-    fast_dev_run: bool
+    limit_train_batches: Union[int, float]
+    limit_val_batches: Union[int, float]
+    limit_test_batches: Union[int, float]
+    fast_dev_run: Union[int, bool]
+    max_epochs: int
+    resume_from_checkpoint: Optional[str]
 
     def get_trainer(self) -> pl.Trainer:
         # Clean the arguments
@@ -33,7 +35,6 @@ class TrainerConfig(TrainerConf):
         args.pop("__initialised__")
 
         trainer = pl.Trainer(**args)
-
         return trainer
 
 
