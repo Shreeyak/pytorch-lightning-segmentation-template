@@ -6,10 +6,10 @@ from omegaconf import OmegaConf, DictConfig
 from hydra.utils import instantiate
 from pathlib import Path
 
-from seg_lapa.networks.deeplab.deeplab import DeepLab
-from seg_lapa.loss_func import CrossEntropy2D
-from seg_lapa.datasets.lapa import LaPaDataModule
-from seg_lapa.config_parse.train_conf import TrainConfig
+from networks.deeplab.deeplab import DeepLab
+from loss_func import CrossEntropy2D
+from datasets.lapa import LaPaDataModule
+from config_parse.train_conf import TrainConf
 
 class DeeplabV3plus(pl.LightningModule):
 
@@ -44,7 +44,7 @@ class DeeplabV3plus(pl.LightningModule):
 
 
 @hydra.main(config_path='config', config_name='train')
-def main(cfg: TrainConfig):
+def main(cfg: TrainConf):
     print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
     print(cfg)
 
@@ -54,21 +54,14 @@ def main(cfg: TrainConfig):
     data_conf = instantiate(cfg.dataset)
     dm = data_conf.get_datamodule()
     print(dm)
-    exit()
 
-    trainer = pl.Trainer(gpus=[0], overfit_batches=0.0,
-                         distributed_backend="ddp", num_nodes=1,
-                         precision=32,
-                         limit_train_batches=1.0,
-                         limit_val_batches=1.0,
-                         limit_test_batches=1.0,
-                         max_steps=cfg.num_steps,
-                         fast_dev_run=False,
-                         )
+    trainer_conf = instantiate(cfg.trainer)
+    trainer = trainer_conf.get_trainer()
+
     trainer.fit(model, datamodule=dm)
 
-    result = trainer.test(test_dataloaders=test_loader)
-    print(result)
+    # result = trainer.test(test_dataloaders=test_loader)
+    # print(result)
 
 
 if __name__ == '__main__':

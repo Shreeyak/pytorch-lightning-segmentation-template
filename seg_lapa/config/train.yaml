@@ -2,6 +2,7 @@
 defaults:
     - dataset: lapa
     - optimizer: adam
+    - trainer: trainer
 #    - scheduler: disabled
 #    - model: deeplabv3
 

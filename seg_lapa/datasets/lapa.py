@@ -11,7 +11,7 @@ import torch
 import torchvision
 from torch.utils.data import Dataset, DataLoader
 
-from seg_lapa.utils.path_check import get_path
+from utils.path_check import get_path
 
 
 class DatasetSplit(enum.Enum):
