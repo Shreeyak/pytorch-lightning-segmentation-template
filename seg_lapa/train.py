@@ -8,16 +8,19 @@ from pathlib import Path
 
 from seg_lapa.networks.deeplab.deeplab import DeepLab
 from seg_lapa.loss_func import CrossEntropy2D
-from seg_lapa.datasets.lapa import LaPaDataModule
-from seg_lapa.config_parse.train_conf import TrainConfig
+from seg_lapa.config_parse.train_conf import TrainConf
+
+from seg_lapa.config_parse import train_conf
+
 
 class DeeplabV3plus(pl.LightningModule):
 
-    def __init__(self):
+    def __init__(self, config: TrainConf):
         super().__init__()
         self.model = DeepLab(backbone='drn', output_stride=8, num_classes=11,
                              sync_bn=False, enable_amp=False)
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
+        self.config = config
 
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions
@@ -38,36 +41,48 @@ class DeeplabV3plus(pl.LightningModule):
 
         return loss
 
+    def validation_step(self, batch, batch_idx):
+        inputs, labels = batch
+        outputs = self.model(inputs)
+        loss = self.cross_entropy_loss(outputs, labels)
+
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        return {
+            'val_loss': loss,
+        }
+
+    def test_step(self, batch, batch_idx):
+        inputs, labels = batch
+        outputs = self.model(inputs)
+        loss = self.cross_entropy_loss(outputs, labels)
+
+        self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        return {
+            'test_loss': loss,
+        }
+
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = self.config.optimizer.get_optimizer(self.parameters())
         return optimizer
 
 
 @hydra.main(config_path='config', config_name='train')
-def main(cfg: TrainConfig):
+def main(cfg: TrainConf):
     print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
     print(cfg)
 
-    model = DeeplabV3plus()
+    config = train_conf.parse_config(cfg)
 
-    # Dataloaders
-    data_conf = instantiate(cfg.dataset)
-    dm = data_conf.get_datamodule()
-    print(dm)
-    exit()
+    model = DeeplabV3plus(config)
 
-    trainer = pl.Trainer(gpus=[0], overfit_batches=0.0,
-                         distributed_backend="ddp", num_nodes=1,
-                         precision=32,
-                         limit_train_batches=1.0,
-                         limit_val_batches=1.0,
-                         limit_test_batches=1.0,
-                         max_steps=cfg.num_steps,
-                         fast_dev_run=False,
-                         )
+    trainer = config.trainer.get_trainer()
+    dm = config.dataset.get_datamodule()
+
     trainer.fit(model, datamodule=dm)
 
-    result = trainer.test(test_dataloaders=test_loader)
+    result = trainer.test()
     print(result)
 
 

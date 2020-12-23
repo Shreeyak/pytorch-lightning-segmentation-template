@@ -1,36 +1,60 @@
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 import torch
-from hydra.core.config_store import ConfigStore
-from omegaconf import MISSING
+from omegaconf import DictConfig
+from pydantic.dataclasses import dataclass
 
 
 @dataclass
-class OptimConf:
-    def get_optimizer(self, parameters) -> torch.optim.Optimizer:
+class OptimConf(ABC):
+    name: str
+
+    @abstractmethod
+    def get_optimizer(self, model_params) -> torch.optim.Optimizer:
         pass
 
 
 @dataclass
 class AdamConf(OptimConf):
-    lr: float = MISSING
-    weight_decay: float = MISSING
+    lr: float
+    weight_decay: float
 
-    def get_optimizer(self, parameters) -> torch.optim.Optimizer:
-        return torch.optim.Adam(parameters, **vars(self))
+    def get_optimizer(self, model_params) -> torch.optim.Optimizer:
+        # Clean the arguments
+        args = vars(self)
+        args.pop('name', None)
+        args.pop('__initialised__', None)
+
+        return torch.optim.Adam(params=model_params, **args)
 
 
 @dataclass
 class SgdConf(OptimConf):
-    lr: float = MISSING
-    momentum: float = MISSING
-    weight_decay: float = MISSING
-    nesterov: bool = MISSING
+    lr: float
+    momentum: float
+    weight_decay: float
+    nesterov: bool
 
-    def get_optimizer(self, parameters) -> torch.optim.Optimizer:
-        return torch.optim.SGD(parameters, **vars(self))
+    def get_optimizer(self, model_params) -> torch.optim.Optimizer:
+        # Clean the arguments
+        args = vars(self)
+        args.pop('name', None)
+        args.pop('__initialised__', None)
+
+        return torch.optim.SGD(params=model_params, **args)
 
 
-cs = ConfigStore.instance()
-cs.store(group="optimizer/adam", name="adam", node=AdamConf)
-cs.store(group="optimizer/sgd", name="sgd", node=SgdConf)
+valid_options = {
+    "adam": AdamConf,
+    "sgd": SgdConf
+}
+
+
+def validate_optimconf(cfg_optim: DictConfig) -> OptimConf:
+    try:
+        optimconf = valid_options[cfg_optim.name](**cfg_optim)
+    except KeyError:
+        raise ValueError(f"Invalid Config: '{cfg_optim.name}' is not a valid optimizer. "
+                         f"Valid Options: {list(valid_options.keys())}")
+
+    return optimconf

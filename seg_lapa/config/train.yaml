@@ -1,11 +1,11 @@
 
-num_steps: 10000
-
 defaults:
     - dataset: lapa
+    - model: deeplabv3
     - optimizer: adam
-#    - scheduler: disabled
-#    - model: deeplabv3
+    - trainer: trainer
+
+    #    - scheduler: disabled
 
     # To disable any .log files
     - hydra/job_logging: disabled

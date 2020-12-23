@@ -1,7 +1,6 @@
 # @package _group_
-#lapa:
-_target_: "seg_lapa.config_parse.dataset_conf.LapaConf"
-data_dir: 'data/LaPa'
+name: lapa
+data_dir: '/home/gaini/lightning/LaPa'
 batch_size: 16
 num_workers: 4
 resize_h: 256
