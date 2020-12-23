@@ -16,7 +16,6 @@ class TrainConf:
     # loggers: Any
 
 
-
 def parse_config(cfg: DictConfig) -> TrainConf:
     """Parses the config file read from hydra to populate the TrainConfig dataclass"""
     config = TrainConf(
