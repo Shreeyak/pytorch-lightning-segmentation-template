@@ -11,6 +11,7 @@ from seg_lapa.config_parse import train_conf
 from seg_lapa import metrics
 
 
+
 class DeeplabV3plus(pl.LightningModule):
 
     def __init__(self, config: TrainConf):
