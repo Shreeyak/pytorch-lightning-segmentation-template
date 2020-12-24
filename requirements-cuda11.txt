@@ -1,3 +1,4 @@
 # This file is for installing pytorch 1.7 for cuda 11, as it requires different syntax
-torch==1.7.1+cu110 --find-links https://download.pytorch.org/whl/torch_stable.html
-torchvision==0.8.2+cu110 --find-links https://download.pytorch.org/whl/torch_stable.html
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==1.7.1+cu110
+torchvision==0.8.2+cu110
