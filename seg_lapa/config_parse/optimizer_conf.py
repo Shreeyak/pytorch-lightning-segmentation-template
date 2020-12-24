@@ -4,7 +4,7 @@ import torch
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
-from seg_lapa.config_parse.conf_utils import cleaned_asdict
+from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
 @dataclass
@@ -36,17 +36,14 @@ class SgdConf(OptimConf):
         return torch.optim.SGD(params=model_params, **cleaned_asdict(self))
 
 
-valid_options = {
+valid_names = {
     "adam": AdamConf,
     "sgd": SgdConf
 }
 
 
-def validate_optimconf(cfg_optim: DictConfig) -> OptimConf:
-    try:
-        optimconf = valid_options[cfg_optim.name](**cfg_optim)
-    except KeyError:
-        raise ValueError(f"Invalid Config: '{cfg_optim.name}' is not a valid optimizer. "
-                         f"Valid Options: {list(valid_options.keys())}")
-
-    return optimconf
+def validate_config_group(cfg_subgroup: DictConfig) -> OptimConf:
+    validated_dataclass = validate_config_group_generic(cfg_subgroup,
+                                                        mapping_names_dataclass=valid_names,
+                                                        config_category='optimizer')
+    return validated_dataclass

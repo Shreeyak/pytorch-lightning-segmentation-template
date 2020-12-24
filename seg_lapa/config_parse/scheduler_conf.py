@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 from torch.optim.optimizer import Optimizer
 
-from seg_lapa.config_parse.conf_utils import cleaned_asdict
+from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
 @dataclass
@@ -76,7 +76,7 @@ class PlateauConfig(SchedulerConf):
         return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **cleaned_asdict(self))
 
 
-valid_options = {
+valid_names = {
     "disabled": DisabledConfig,
     "cyclic": CyclicConfig,
     "plateau": PlateauConfig,
@@ -85,11 +85,8 @@ valid_options = {
 }
 
 
-def validate_schedulerconf(cfg_scheduler: DictConfig) -> SchedulerConf:
-    try:
-        schedulerconf = valid_options[cfg_scheduler.name](**cfg_scheduler)
-    except KeyError:
-        raise ValueError(f"Invalid Config: '{cfg_scheduler.name}' is not a valid scheduler. "
-                         f"Valid Options: {list(valid_options.keys())}")
-
-    return schedulerconf
+def validate_config_group(cfg_subgroup: DictConfig) -> SchedulerConf:
+    validated_dataclass = validate_config_group_generic(cfg_subgroup,
+                                                        mapping_names_dataclass=valid_names,
+                                                        config_category='scheduler')
+    return validated_dataclass

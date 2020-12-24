@@ -37,6 +37,5 @@ def main(cfg):
     print(scheduler)
 
 
-
 if __name__ == '__main__':
     main()

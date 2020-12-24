@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
 from seg_lapa.networks.deeplab.deeplab import DeepLab
-from seg_lapa.config_parse.conf_utils import cleaned_asdict
+from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
 @dataclass
@@ -29,16 +29,13 @@ class Deeplabv3Conf(ModelConf):
         return DeepLab(**cleaned_asdict(self))
 
 
-valid_options = {
+valid_names = {
     "deeplabv3": Deeplabv3Conf,
 }
 
 
-def validate_modelconf(cfg_model: DictConfig) -> DeepLab:
-    try:
-        modelconf = valid_options[cfg_model.name](**cfg_model)
-    except KeyError:
-        raise ValueError(f"Invalid Config: '{cfg_model.name}' is not a valid optimizer. "
-                         f"Valid Options: {list(valid_options.keys())}")
-
-    return modelconf
+def validate_config_group(cfg_subgroup: DictConfig) -> ModelConf:
+    validated_dataclass = validate_config_group_generic(cfg_subgroup,
+                                                        mapping_names_dataclass=valid_names,
+                                                        config_category='model')
+    return validated_dataclass
