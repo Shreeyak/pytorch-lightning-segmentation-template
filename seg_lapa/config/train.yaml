@@ -4,8 +4,7 @@ defaults:
     - model: deeplabv3
     - optimizer: adam
     - trainer: trainer
-
-    #    - scheduler: disabled
+    - scheduler: disabled
 
     # To disable any .log files
     - hydra/job_logging: disabled
