@@ -6,17 +6,11 @@
 
 [![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
 [![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/book/advances-in-neural-information-processing-systems-31-2018)  
-<!--
-ARXIV   
-[![Paper](http://img.shields.io/badge/arxiv-math.co:1480.1111-B31B1B.svg)](https://www.nature.com/articles/nature14539)
--->
+[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-
-<!--  
-Conference   
--->   
 </div>
- 
+
 ## Description   
 This an example project showcasing Pytorch Lightning for semantic segmentation of the 
 [LaPa dataset](https://github.com/JDAI-CV/lapa-dataset) with Deeplabv3+.  
@@ -30,7 +24,10 @@ git clone git@github.com:Shreeyak/pytorch-lightning-segmentation-lapa.git
 # install project in development mode
 cd pytorch-lightning-segmentation-lapa
 pip install -e .   
+
+# Setup git precommits
 pip install -r requirements-dev.txt
+pre-commit install
 ```   
 
 #### Developer dependencies
