@@ -13,7 +13,7 @@ patience: 25
 min_lr: 1e-7
 
 # One of min, max. In min mode, lr change when metric stops decreasing; in max mode when metric stops increasing.
-mode: 'min'
+mode: "min"
 
 # Threshold for measuring the new optimum, to only focus on significant changes.
 threshold: 1e-4
