@@ -11,9 +11,7 @@ from seg_lapa.config_parse import train_conf
 from seg_lapa import metrics
 
 
-
 class DeeplabV3plus(pl.LightningModule):
-
     def __init__(self, config: TrainConf):
         super().__init__()
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
@@ -36,7 +34,7 @@ class DeeplabV3plus(pl.LightningModule):
         # to aggregate epoch metrics use self.log or a metric. self.log logs metrics for each training_step.
         # It also logs the average across the epoch, to the progress bar and logger
         # "train_loss" is a reserved keyword
-        self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         return loss
 
@@ -45,10 +43,10 @@ class DeeplabV3plus(pl.LightningModule):
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
 
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         return {
-            'val_loss': loss,
+            "val_loss": loss,
         }
 
     def test_step(self, batch, batch_idx):
@@ -56,10 +54,10 @@ class DeeplabV3plus(pl.LightningModule):
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
 
-        self.log('test_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         return {
-            'test_loss': loss,
+            "test_loss": loss,
         }
 
     def configure_optimizers(self):
@@ -67,7 +65,7 @@ class DeeplabV3plus(pl.LightningModule):
         return optimizer
 
 
-@hydra.main(config_path='config', config_name='train')
+@hydra.main(config_path="config", config_name="train")
 def main(cfg: TrainConf):
     print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
     print(cfg)
@@ -85,5 +83,5 @@ def main(cfg: TrainConf):
     print(result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
