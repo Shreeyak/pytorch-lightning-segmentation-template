@@ -64,13 +64,7 @@ class IouMetric:
         iou_per_class = iou_per_class.cpu().numpy()
 
         # Compile into dict
-        data_r = {
-            'iou_per_class': iou_per_class,
-            'tp': tp,
-            'fn': fn,
-            'fp': fp,
-            'total_px': total_px
-        }
+        data_r = {"iou_per_class": iou_per_class, "tp": tp, "fn": fn, "fp": fp, "total_px": total_px}
 
         return data_r
 
@@ -87,17 +81,17 @@ def test_iou():
     pred = torch.zeros((1, 4, 4), device=device)
     label[:, :3, :3] = 1
     pred[:, -3:, -3:] = 1
-    expected_iou = [2.0/12, 4.0/14]
+    expected_iou = [2.0 / 12, 4.0 / 14]
 
     iou_meter = IouMetric(num_classes=2)
     iou_meter.accumulate_confusion_matrix(pred, label)
     metrics_r = iou_meter.get_iou()
-    iou_per_class = metrics_r['iou_per_class']
+    iou_per_class = metrics_r["iou_per_class"]
 
     assert (iou_per_class - expected_iou).sum() < 1e-6
-    print('Testing IOU: passed')
+    print("Testing IOU: passed")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Run tests
     test_iou()

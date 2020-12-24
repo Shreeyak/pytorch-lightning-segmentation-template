@@ -15,28 +15,27 @@ class FakeModel(torch.nn.Module):
         return x
 
 
-@hydra.main(config_path='../seg_lapa/config', config_name='train')
+@hydra.main(config_path="../seg_lapa/config", config_name="train")
 def main(cfg):
-    print('\nHydra\'s Config:')
+    print("\nHydra's Config:")
     print(OmegaConf.to_yaml(cfg))
 
-    print('\nParsed Datamodule:')
+    print("\nParsed Datamodule:")
     config = train_conf.parse_config(cfg)
     print(config)
 
-    print('\nInitialized Datamodule:')
+    print("\nInitialized Datamodule:")
     print(config.dataset.get_datamodule())
 
-    print('\nInitialized Optimizer:')
+    print("\nInitialized Optimizer:")
     model = FakeModel()
     optimizer = config.optimizer.get_optimizer(model.parameters())
     print(optimizer)
 
-    print('\nInitialized Scheduler:')
+    print("\nInitialized Scheduler:")
     scheduler = config.scheduler.get_scheduler(optimizer)
     print(scheduler)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

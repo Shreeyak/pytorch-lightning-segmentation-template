@@ -24,18 +24,20 @@ class CrossEntropy2D(nn.CrossEntropyLoss):
     References:
         https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#crossentropyloss
     """
+
     def __init__(self, loss_per_image: bool = True, ignore_index: int = 255):
         if loss_per_image:
-            reduction = 'sum'
+            reduction = "sum"
         else:
-            reduction = 'mean'
+            reduction = "mean"
 
         super().__init__(reduction=reduction, ignore_index=ignore_index)
         self.loss_per_image = loss_per_image
 
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor):
-        loss = F.cross_entropy(inputs, targets, weight=self.weight,
-                               ignore_index=self.ignore_index, reduction=self.reduction)
+        loss = F.cross_entropy(
+            inputs, targets, weight=self.weight, ignore_index=self.ignore_index, reduction=self.reduction
+        )
 
         if self.loss_per_image:
             batch_size = inputs.shape[0]

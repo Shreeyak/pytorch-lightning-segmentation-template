@@ -8,7 +8,6 @@ from seg_lapa.config_parse.model_conf import ModelConf, validate_modelconf
 from seg_lapa.config_parse.scheduler_conf import SchedulerConf, validate_schedulerconf
 
 
-
 @dataclass
 class TrainConf:
     dataset: DatasetConf

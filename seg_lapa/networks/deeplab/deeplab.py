@@ -10,11 +10,12 @@ from .sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
 class DeepLab(nn.Module):
-    def __init__(self, backbone='drn', output_stride=8, num_classes=11,
-                 sync_bn=False, freeze_bn=False, enable_amp=False):
+    def __init__(
+        self, backbone="drn", output_stride=8, num_classes=11, sync_bn=False, freeze_bn=False, enable_amp=False
+    ):
         super(DeepLab, self).__init__()
 
-        if backbone == 'drn' and output_stride != 8:
+        if backbone == "drn" and output_stride != 8:
             raise ValueError(f'The "drn" backbone only supports output stride = 8. Input: {output_stride}')
 
         # Ref for sync_bn: https://hangzhang.org/PyTorch-Encoding/tutorials/syncbn.html
@@ -36,13 +37,13 @@ class DeepLab(nn.Module):
         with autocast(enabled=self.enable_amp):
             """Pytorch Automatic Mixed Precision (AMP) Training
             Ref: https://pytorch.org/docs/stable/amp.html#torch.cuda.amp.autocast
-            
-            - For use with DataParallel, we must add autocast within model definition. 
+
+            - For use with DataParallel, we must add autocast within model definition.
             """
             x, low_level_feat = self.backbone(inputs)
             x = self.aspp(x)
             x = self.decoder(x, low_level_feat)
-            x = F.interpolate(x, size=inputs.size()[2:], mode='bilinear', align_corners=True)
+            x = F.interpolate(x, size=inputs.size()[2:], mode="bilinear", align_corners=True)
 
         return x
 
@@ -63,8 +64,11 @@ class DeepLab(nn.Module):
                             if p.requires_grad:
                                 yield p
                 else:
-                    if isinstance(m[1], nn.Conv2d) or isinstance(m[1], SynchronizedBatchNorm2d) \
-                            or isinstance(m[1], nn.BatchNorm2d):
+                    if (
+                        isinstance(m[1], nn.Conv2d)
+                        or isinstance(m[1], SynchronizedBatchNorm2d)
+                        or isinstance(m[1], nn.BatchNorm2d)
+                    ):
                         for p in m[1].parameters():
                             if p.requires_grad:
                                 yield p
@@ -79,15 +83,18 @@ class DeepLab(nn.Module):
                             if p.requires_grad:
                                 yield p
                 else:
-                    if isinstance(m[1], nn.Conv2d) or isinstance(m[1], SynchronizedBatchNorm2d) \
-                            or isinstance(m[1], nn.BatchNorm2d):
+                    if (
+                        isinstance(m[1], nn.Conv2d)
+                        or isinstance(m[1], SynchronizedBatchNorm2d)
+                        or isinstance(m[1], nn.BatchNorm2d)
+                    ):
                         for p in m[1].parameters():
                             if p.requires_grad:
                                 yield p
 
 
 if __name__ == "__main__":
-    model = DeepLab(backbone='drn', output_stride=8)
+    model = DeepLab(backbone="drn", output_stride=8)
     model.eval()
     inputs = torch.rand(1, 3, 512, 512)
     output = model(inputs)
