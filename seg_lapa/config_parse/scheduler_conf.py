@@ -32,12 +32,10 @@ class CyclicConfig(SchedulerConf):
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.CyclicLR:
         # Clean the arguments
         args = vars(self)
-        args.pop('name', None)
-        args.pop('__initialised__', None)
+        args.pop("name", None)
+        args.pop("__initialised__", None)
 
-        return torch.optim.lr_scheduler.CyclicLR(optimizer,
-                                                 cycle_momentum=False,
-                                                 **args)
+        return torch.optim.lr_scheduler.CyclicLR(optimizer, cycle_momentum=False, **args)
 
 
 @dataclass()
@@ -63,8 +61,8 @@ class StepConfig(SchedulerConf):
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.StepLR:
         # Clean the arguments
         args = vars(self)
-        args.pop('name', None)
-        args.pop('__initialised__', None)
+        args.pop("name", None)
+        args.pop("__initialised__", None)
 
         return torch.optim.lr_scheduler.StepLR(optimizer, **args)
 
@@ -83,8 +81,8 @@ class PlateauConfig(SchedulerConf):
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.ReduceLROnPlateau:
         # Clean the arguments
         args = vars(self)
-        args.pop('name', None)
-        args.pop('__initialised__', None)
+        args.pop("name", None)
+        args.pop("__initialised__", None)
 
         return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **args)
 
@@ -102,7 +100,9 @@ def validate_schedulerconf(cfg_scheduler: DictConfig) -> SchedulerConf:
     try:
         schedulerconf = valid_options[cfg_scheduler.name](**cfg_scheduler)
     except KeyError:
-        raise ValueError(f"Invalid Config: '{cfg_scheduler.name}' is not a valid scheduler. "
-                         f"Valid Options: {list(valid_options.keys())}")
+        raise ValueError(
+            f"Invalid Config: '{cfg_scheduler.name}' is not a valid scheduler. "
+            f"Valid Options: {list(valid_options.keys())}"
+        )
 
     return schedulerconf
