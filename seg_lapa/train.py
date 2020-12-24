@@ -1,9 +1,6 @@
-import torch
 import pytorch_lightning as pl
 import hydra
-import wandb
 from omegaconf import OmegaConf, DictConfig
-from pathlib import Path
 
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.config_parse.train_conf import TrainConf
@@ -66,7 +63,7 @@ class DeeplabV3plus(pl.LightningModule):
 
 
 @hydra.main(config_path="config", config_name="train")
-def main(cfg: TrainConf):
+def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
     print(cfg)
 
