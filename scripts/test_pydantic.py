@@ -29,7 +29,13 @@ def main(cfg):
 
     print('\nInitialized Optimizer:')
     model = FakeModel()
-    print(config.optimizer.get_optimizer(model.parameters()))
+    optimizer = config.optimizer.get_optimizer(model.parameters())
+    print(optimizer)
+
+    print('\nInitialized Scheduler:')
+    scheduler = config.scheduler.get_scheduler(optimizer)
+    print(scheduler)
+
 
 
 if __name__ == '__main__':
