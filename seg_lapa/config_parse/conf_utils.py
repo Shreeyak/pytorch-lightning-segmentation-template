@@ -5,8 +5,10 @@ from omegaconf import DictConfig
 
 
 def cleaned_asdict(obj, remove_keys: Optional[Sequence[str]] = None) -> Dict:
-    """Returns the attributes of a dataclass in the form of a dict, with unwanted attributes removed
-    Each config group has the term 'name', which is not required in initializing any classes. So it needs to be removed.
+    """Returns the attributes of a dataclass in the form of a dict, with unwanted attributes removed.
+    Each config group has the term 'name', which is helpful in identifying the node that was chosen
+    in the config group (Eg. config group = optimizers, nodes = adam, sgd).
+    However, the 'name' parameter is not required for initializing any dataclasses. Hence it needs to be removed.
 
     Args:
         obj: The dataclass whose atrributes will be converted to dict
@@ -29,8 +31,11 @@ def cleaned_asdict(obj, remove_keys: Optional[Sequence[str]] = None) -> Dict:
 def validate_config_group_generic(
     cfg_group: DictConfig, mapping_names_dataclass: Dict, config_category: Optional[str] = None
 ):
-    """Validate a pydantic dataclass by initializing it.
+    """Validate a hydra config group (DictConfig) by using it to initialize a pydantic dataclass.
     Each of our config groups has a name parameter, which is used to map to valid dataclasses for validation.
+
+    Pydantic will force the parameters to the desired datatype and will throw errors if the config
+    cannot be cast to the dataclass members.
 
     Args:
         cfg_group: The config group extracted from the hydra config.
