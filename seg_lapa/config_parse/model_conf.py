@@ -9,6 +9,7 @@ from seg_lapa.networks.deeplab.deeplab import DeepLab
 @dataclass
 class ModelConf(ABC):
     name: str
+    num_classes: int
 
     @abstractmethod
     def get_model(self):
@@ -19,7 +20,6 @@ class ModelConf(ABC):
 class Deeplabv3Conf(ModelConf):
     backbone: str
     output_stride: int
-    num_classes: int
     sync_bn: bool  # Can use PL to sync batchnorm. This enables custom batchnorm code.
     enable_amp: bool = False  # Should always be false, since PL takes case of 16bit training
 

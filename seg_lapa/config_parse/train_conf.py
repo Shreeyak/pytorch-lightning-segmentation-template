@@ -6,6 +6,7 @@ from seg_lapa.config_parse.optimizer_conf import OptimConf, validate_optimconf
 from seg_lapa.config_parse.trainer_conf import TrainerConf, validate_trainerconf
 from seg_lapa.config_parse.model_conf import ModelConf, validate_modelconf
 
+
 @dataclass
 class TrainConf:
     dataset: DatasetConf
