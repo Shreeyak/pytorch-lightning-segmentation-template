@@ -6,8 +6,10 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 from torch.optim.optimizer import Optimizer
 
+from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
-@dataclass
+
+@dataclass(frozen=True)
 class SchedulerConf(ABC):
     name: str
 
@@ -16,13 +18,13 @@ class SchedulerConf(ABC):
         pass
 
 
-@dataclass()
+@dataclass(frozen=True)
 class DisabledConfig(SchedulerConf):
     def get_scheduler(self, optimizer: Optimizer) -> None:
         return None
 
 
-@dataclass()
+@dataclass(frozen=True)
 class CyclicConfig(SchedulerConf):
     base_lr: float
     max_lr: float
@@ -30,15 +32,10 @@ class CyclicConfig(SchedulerConf):
     step_size_down: Optional[int]
 
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.CyclicLR:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name", None)
-        args.pop("__initialised__", None)
-
-        return torch.optim.lr_scheduler.CyclicLR(optimizer, cycle_momentum=False, **args)
+        return torch.optim.lr_scheduler.CyclicLR(optimizer, cycle_momentum=False, **cleaned_asdict(self))
 
 
-@dataclass()
+@dataclass(frozen=True)
 class PolyConfig(SchedulerConf):
     max_iter: int
     pow_factor: float
@@ -53,21 +50,16 @@ class PolyConfig(SchedulerConf):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=poly_schedule)
 
 
-@dataclass()
+@dataclass(frozen=True)
 class StepConfig(SchedulerConf):
     step_size: int
     gamma: float
 
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.StepLR:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name", None)
-        args.pop("__initialised__", None)
-
-        return torch.optim.lr_scheduler.StepLR(optimizer, **args)
+        return torch.optim.lr_scheduler.StepLR(optimizer, **cleaned_asdict(self))
 
 
-@dataclass()
+@dataclass(frozen=True)
 class PlateauConfig(SchedulerConf):
     factor: float
     patience: int
@@ -79,15 +71,10 @@ class PlateauConfig(SchedulerConf):
     verbose: bool
 
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.ReduceLROnPlateau:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name", None)
-        args.pop("__initialised__", None)
-
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **args)
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **cleaned_asdict(self))
 
 
-valid_options = {
+valid_names = {
     "disabled": DisabledConfig,
     "cyclic": CyclicConfig,
     "plateau": PlateauConfig,
@@ -96,13 +83,8 @@ valid_options = {
 }
 
 
-def validate_schedulerconf(cfg_scheduler: DictConfig) -> SchedulerConf:
-    try:
-        schedulerconf = valid_options[cfg_scheduler.name](**cfg_scheduler)
-    except KeyError:
-        raise ValueError(
-            f"Invalid Config: '{cfg_scheduler.name}' is not a valid scheduler. "
-            f"Valid Options: {list(valid_options.keys())}"
-        )
-
-    return schedulerconf
+def validate_config_group(cfg_subgroup: DictConfig) -> SchedulerConf:
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="scheduler"
+    )
+    return validated_dataclass

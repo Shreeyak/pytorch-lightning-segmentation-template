@@ -5,9 +5,10 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
 from seg_lapa.networks.deeplab.deeplab import DeepLab
+from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelConf(ABC):
     name: str
     num_classes: int
@@ -17,7 +18,7 @@ class ModelConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Deeplabv3Conf(ModelConf):
     backbone: str
     output_stride: int
@@ -25,26 +26,16 @@ class Deeplabv3Conf(ModelConf):
     enable_amp: bool = False  # Should always be false, since PL takes case of 16bit training
 
     def get_model(self) -> torch.nn.Module:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name", None)
-        args.pop("__initialised__", None)
-
-        return DeepLab(**args)
+        return DeepLab(**asdict_filtered(self))
 
 
-valid_options = {
+valid_names = {
     "deeplabv3": Deeplabv3Conf,
 }
 
 
-def validate_modelconf(cfg_model: DictConfig) -> DeepLab:
-    try:
-        modelconf = valid_options[cfg_model.name](**cfg_model)
-    except KeyError:
-        raise ValueError(
-            f"Invalid Config: '{cfg_model.name}' is not a valid optimizer. "
-            f"Valid Options: {list(valid_options.keys())}"
-        )
-
-    return modelconf
+def validate_config_group(cfg_subgroup: DictConfig) -> ModelConf:
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="model"
+    )
+    return validated_dataclass

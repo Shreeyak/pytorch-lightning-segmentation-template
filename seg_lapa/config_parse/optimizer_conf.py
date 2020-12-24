@@ -4,8 +4,10 @@ import torch
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
+from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
-@dataclass
+
+@dataclass(frozen=True)
 class OptimConf(ABC):
     name: str
 
@@ -14,21 +16,16 @@ class OptimConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class AdamConf(OptimConf):
     lr: float
     weight_decay: float
 
     def get_optimizer(self, model_params) -> torch.optim.Optimizer:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name", None)
-        args.pop("__initialised__", None)
-
-        return torch.optim.Adam(params=model_params, **args)
+        return torch.optim.Adam(params=model_params, **asdict_filtered(self))
 
 
-@dataclass
+@dataclass(frozen=True)
 class SgdConf(OptimConf):
     lr: float
     momentum: float
@@ -36,24 +33,14 @@ class SgdConf(OptimConf):
     nesterov: bool
 
     def get_optimizer(self, model_params) -> torch.optim.Optimizer:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name", None)
-        args.pop("__initialised__", None)
-
-        return torch.optim.SGD(params=model_params, **args)
+        return torch.optim.SGD(params=model_params, **asdict_filtered(self))
 
 
-valid_options = {"adam": AdamConf, "sgd": SgdConf}
+valid_names = {"adam": AdamConf, "sgd": SgdConf}
 
 
-def validate_optimconf(cfg_optim: DictConfig) -> OptimConf:
-    try:
-        optimconf = valid_options[cfg_optim.name](**cfg_optim)
-    except KeyError:
-        raise ValueError(
-            f"Invalid Config: '{cfg_optim.name}' is not a valid optimizer. "
-            f"Valid Options: {list(valid_options.keys())}"
-        )
-
-    return optimconf
+def validate_config_group(cfg_subgroup: DictConfig) -> OptimConf:
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="optimizer"
+    )
+    return validated_dataclass

@@ -5,9 +5,10 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
 from seg_lapa.datasets.lapa import LaPaDataModule
+from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
 
-@dataclass
+@dataclass(frozen=True)
 class DatasetConf(ABC):
     name: str
 
@@ -16,7 +17,7 @@ class DatasetConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class LapaConf(DatasetConf):
     data_dir: str
     batch_size: int
@@ -25,24 +26,14 @@ class LapaConf(DatasetConf):
     resize_w: int
 
     def get_datamodule(self) -> LaPaDataModule:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name")
-        args.pop("__initialised__")
-
-        return LaPaDataModule(**args)
+        return LaPaDataModule(**asdict_filtered(self))
 
 
-valid_options = {"lapa": LapaConf}
+valid_names = {"lapa": LapaConf}
 
 
-def validate_dataconf(cfg_dataset: DictConfig) -> DatasetConf:
-    try:
-        dataconf = valid_options[cfg_dataset.name](**cfg_dataset)
-    except KeyError:
-        raise ValueError(
-            f"Invalid Config: '{cfg_dataset.name}' is not a valid dataset. "
-            f"Valid Options: {list(valid_options.keys())}"
-        )
-
-    return dataconf
+def validate_config_group(cfg_subgroup: DictConfig) -> DatasetConf:
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="dataset"
+    )
+    return validated_dataclass

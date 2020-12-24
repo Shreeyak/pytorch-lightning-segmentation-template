@@ -5,8 +5,10 @@ import pytorch_lightning as pl
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
+from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
-@dataclass
+
+@dataclass(frozen=True)
 class TrainerConf(ABC):
     name: str
 
@@ -15,7 +17,7 @@ class TrainerConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainerConfig(TrainerConf):
     gpus: Union[int, str, List[int]]
     overfit_batches: Union[int, float]
@@ -29,22 +31,15 @@ class TrainerConfig(TrainerConf):
     resume_from_checkpoint: Optional[str]
 
     def get_trainer(self) -> pl.Trainer:
-        # Clean the arguments
-        args = vars(self)
-        args.pop("name")
-        args.pop("__initialised__")
-
-        trainer = pl.Trainer(**args)
+        trainer = pl.Trainer(**asdict_filtered(self))
         return trainer
 
 
-valid_options = {"trainer": TrainerConfig}
+valid_names = {"trainer": TrainerConfig}
 
 
-def validate_trainerconf(cfg_trainer: DictConfig) -> TrainerConf:
-    try:
-        trainerconf = valid_options[cfg_trainer.name](**cfg_trainer)
-    except KeyError:
-        raise ValueError(f"Invalid Config for trainer. " f"Valid Options: {list(valid_options.keys())}")
-
-    return trainerconf
+def validate_config_group(cfg_subgroup: DictConfig) -> TrainerConf:
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="trainer"
+    )
+    return validated_dataclass
