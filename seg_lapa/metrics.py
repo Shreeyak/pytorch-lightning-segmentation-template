@@ -13,6 +13,11 @@ class IouMetric:
         """
         self.num_classes = num_classes
         self.conf_mat_flattened = None  # Avoid having to assign device by initializing as None
+        self.count = 0  # This isn't used as of now. Can be used to normalize the accumulated conf matrix
+
+    def reset(self):
+        self.conf_mat_flattened = None
+        self.count = 0
 
     def accumulate_confusion_matrix(self, prediction: torch.Tensor, label: torch.Tensor):
         """Calculates and accumulates the confusion matrix for a batch"""
@@ -33,6 +38,7 @@ class IouMetric:
             self.conf_mat_flattened = conf_mat
         else:
             self.conf_mat_flattened += conf_mat
+        self.count += 1
 
     def get_confusion_matrix(self) -> np.ndarray:
         """Extract the accumulated confusion matrix"""

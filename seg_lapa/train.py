@@ -9,18 +9,18 @@ from pathlib import Path
 from seg_lapa.networks.deeplab.deeplab import DeepLab
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.config_parse.train_conf import TrainConf
-
 from seg_lapa.config_parse import train_conf
+from seg_lapa import metrics
 
 
 class DeeplabV3plus(pl.LightningModule):
 
     def __init__(self, config: TrainConf):
         super().__init__()
-        self.model = DeepLab(backbone='drn', output_stride=8, num_classes=11,
-                             sync_bn=False, enable_amp=False)
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
+        self.model = self.config.model.get_model()
+        self.iou_meter = metrics.IouMetric(num_classes=config.model.num_classes)
 
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions
