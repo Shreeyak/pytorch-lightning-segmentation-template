@@ -8,7 +8,7 @@ from pydantic.dataclasses import dataclass
 from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainerConf(ABC):
     name: str
 
@@ -17,7 +17,7 @@ class TrainerConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainerConfig(TrainerConf):
     gpus: Union[int, str, List[int]]
     overfit_batches: Union[int, float]

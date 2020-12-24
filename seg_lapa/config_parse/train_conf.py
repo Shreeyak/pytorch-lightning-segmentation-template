@@ -14,7 +14,7 @@ from seg_lapa.config_parse import model_conf
 from seg_lapa.config_parse import scheduler_conf
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainConf:
     dataset: DatasetConf
     optimizer: OptimConf

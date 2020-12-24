@@ -8,7 +8,7 @@ from seg_lapa.networks.deeplab.deeplab import DeepLab
 from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelConf(ABC):
     name: str
 
@@ -17,7 +17,7 @@ class ModelConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Deeplabv3Conf(ModelConf):
     backbone: str
     output_stride: int

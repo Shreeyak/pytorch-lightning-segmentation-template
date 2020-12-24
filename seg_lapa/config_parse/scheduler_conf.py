@@ -9,7 +9,7 @@ from torch.optim.optimizer import Optimizer
 from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
-@dataclass
+@dataclass(frozen=True)
 class SchedulerConf(ABC):
     name: str
 
@@ -18,13 +18,13 @@ class SchedulerConf(ABC):
         pass
 
 
-@dataclass()
+@dataclass(frozen=True)
 class DisabledConfig(SchedulerConf):
     def get_scheduler(self, optimizer: Optimizer) -> None:
         return None
 
 
-@dataclass()
+@dataclass(frozen=True)
 class CyclicConfig(SchedulerConf):
     base_lr: float
     max_lr: float
@@ -37,7 +37,7 @@ class CyclicConfig(SchedulerConf):
                                                  **cleaned_asdict(self))
 
 
-@dataclass()
+@dataclass(frozen=True)
 class PolyConfig(SchedulerConf):
     max_iter: int
     pow_factor: float
@@ -52,7 +52,7 @@ class PolyConfig(SchedulerConf):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=poly_schedule)
 
 
-@dataclass()
+@dataclass(frozen=True)
 class StepConfig(SchedulerConf):
     step_size: int
     gamma: float
@@ -61,7 +61,7 @@ class StepConfig(SchedulerConf):
         return torch.optim.lr_scheduler.StepLR(optimizer, **cleaned_asdict(self))
 
 
-@dataclass()
+@dataclass(frozen=True)
 class PlateauConfig(SchedulerConf):
     factor: float
     patience: int

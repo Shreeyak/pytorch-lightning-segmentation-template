@@ -8,7 +8,7 @@ from seg_lapa.datasets.lapa import LaPaDataModule
 from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
-@dataclass
+@dataclass(frozen=True)
 class DatasetConf(ABC):
     name: str
 
@@ -17,7 +17,7 @@ class DatasetConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class LapaConf(DatasetConf):
     data_dir: str
     batch_size: int

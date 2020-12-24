@@ -7,7 +7,7 @@ from pydantic.dataclasses import dataclass
 from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
 
 
-@dataclass
+@dataclass(frozen=True)
 class OptimConf(ABC):
     name: str
 
@@ -16,7 +16,7 @@ class OptimConf(ABC):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class AdamConf(OptimConf):
     lr: float
     weight_decay: float
@@ -25,7 +25,7 @@ class AdamConf(OptimConf):
         return torch.optim.Adam(params=model_params, **cleaned_asdict(self))
 
 
-@dataclass
+@dataclass(frozen=True)
 class SgdConf(OptimConf):
     lr: float
     momentum: float
