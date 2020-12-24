@@ -18,7 +18,7 @@ This an example project showcasing Pytorch Lightning for semantic segmentation o
 
 ## Install  
 First, install dependencies  
-```bash
+```shell script
 # clone project  
 git clone git@github.com:Shreeyak/pytorch-lightning-segmentation-lapa.git
 
@@ -30,6 +30,15 @@ pip install -e .
 pip install -r requirements-dev.txt
 pre-commit install
 ```  
+
+#### Note: Cuda 11, Dec 2020
+As of Dec 2020, systems using Cuda 11 (such as those with Ampere GPUs)
+need to use different syntax to install pytorch. For such systems, install
+the correct version of pytorch using:
+
+```shell script
+pip install -r requirements-cuda11.txt
+```
 
 #### Developer dependencies
 This repository uses git pre-commit hooks to auto-format code.
