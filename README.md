@@ -21,46 +21,55 @@ Conference
 This an example project showcasing Pytorch Lightning for semantic segmentation of the 
 [LaPa dataset](https://github.com/JDAI-CV/lapa-dataset) with Deeplabv3+.  
 
-## How to run   
+## Install    
 First, install dependencies   
 ```bash
 # clone project   
 git clone git@github.com:Shreeyak/pytorch-lightning-segmentation-lapa.git
 
-# install project   
+# install project in development mode
 cd pytorch-lightning-segmentation-lapa
 pip install -e .   
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
  ```   
-Run training. The script will download the data to seg-lapa/data.   
+
+#### Developer dependencies
+This repository uses git pre-commit hooks to auto-format code.
+These developer dependencies are in requirements-dev.txt.
+The other files describing pre-commit hooks are: `pyproject.toml`, `.pre-commit-config.yaml`
+
+
+## Usage
+Download the Lapa dataset at https://github.com/JDAI-CV/lapa-dataset  
+It can be placed at `seg_lapa/data`.
+
+Run training.   
  ```bash
-# module folder
-cd seg-lapa
+# Run training
+python -m seg_lapa.train dataset.data_dir=<path_to_data>    
 
-# run module (example: mnist as your main contribution)   
-python seg-lapa.py    
+# Run on multiple gpus
+python -m seg_lapa.train dataset.data_dir=<path_to_data> train.gpus=\"0,1\"    
 ```
 
-## Imports
-This project is setup as a package which means you can now easily import any file into any other file like so:
+## Using this template for your own project
+To use this template for your own project:
+1. Search and replace `seg_lapa` with your project name
+2. Edit setup.py with new package name, requirements and other details
+3. Replace the model, dataloaders, loss function, metric with your own!
+
+### Notes
+#### Absolute imports
+This project is setup as a package. One of the advantages of setting it up as a
+ package is that it is easy to import modules from anywhere.
+ To avoid errors with pytorch-lightning, always use absolute imports:
+ 
 ```python
-from project.datasets.mnist import mnist
-from project.lit_classifier_main import LitClassifier
-from pytorch_lightning import Trainer
-
-# model
-model = LitClassifier()
-
-# data
-train, val, test = mnist()
-
-# train
-trainer = Trainer()
-trainer.fit(model, train, val)
-
-# test using the best model!
-trainer.test(test_dataloaders=test)
+from seg_lapa.loss_func import CrossEntropy2D
+from seg_lapa import metrics
+import seg_lapa.metrics as metrics
 ```
+
 
 ### Citation   
 ```
