@@ -29,13 +29,11 @@ class LapaConf(DatasetConf):
         return LaPaDataModule(**cleaned_asdict(self))
 
 
-valid_names = {
-    "lapa": LapaConf
-}
+valid_names = {"lapa": LapaConf}
 
 
 def validate_config_group(cfg_subgroup: DictConfig) -> DatasetConf:
-    validated_dataclass = validate_config_group_generic(cfg_subgroup,
-                                                        mapping_names_dataclass=valid_names,
-                                                        config_category='dataset')
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="dataset"
+    )
     return validated_dataclass

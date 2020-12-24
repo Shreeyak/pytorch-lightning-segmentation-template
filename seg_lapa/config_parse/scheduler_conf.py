@@ -32,9 +32,7 @@ class CyclicConfig(SchedulerConf):
     step_size_down: Optional[int]
 
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.CyclicLR:
-        return torch.optim.lr_scheduler.CyclicLR(optimizer,
-                                                 cycle_momentum=False,
-                                                 **cleaned_asdict(self))
+        return torch.optim.lr_scheduler.CyclicLR(optimizer, cycle_momentum=False, **cleaned_asdict(self))
 
 
 @dataclass(frozen=True)
@@ -86,7 +84,7 @@ valid_names = {
 
 
 def validate_config_group(cfg_subgroup: DictConfig) -> SchedulerConf:
-    validated_dataclass = validate_config_group_generic(cfg_subgroup,
-                                                        mapping_names_dataclass=valid_names,
-                                                        config_category='scheduler')
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="scheduler"
+    )
     return validated_dataclass

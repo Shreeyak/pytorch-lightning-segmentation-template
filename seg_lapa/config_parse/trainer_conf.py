@@ -39,7 +39,7 @@ valid_names = {"trainer": TrainerConfig}
 
 
 def validate_config_group(cfg_subgroup: DictConfig) -> TrainerConf:
-    validated_dataclass = validate_config_group_generic(cfg_subgroup,
-                                                        mapping_names_dataclass=valid_names,
-                                                        config_category='trainer')
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="trainer"
+    )
     return validated_dataclass

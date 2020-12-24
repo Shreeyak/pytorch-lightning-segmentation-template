@@ -36,14 +36,11 @@ class SgdConf(OptimConf):
         return torch.optim.SGD(params=model_params, **cleaned_asdict(self))
 
 
-valid_names = {
-    "adam": AdamConf,
-    "sgd": SgdConf
-}
+valid_names = {"adam": AdamConf, "sgd": SgdConf}
 
 
 def validate_config_group(cfg_subgroup: DictConfig) -> OptimConf:
-    validated_dataclass = validate_config_group_generic(cfg_subgroup,
-                                                        mapping_names_dataclass=valid_names,
-                                                        config_category='optimizer')
+    validated_dataclass = validate_config_group_generic(
+        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="optimizer"
+    )
     return validated_dataclass
