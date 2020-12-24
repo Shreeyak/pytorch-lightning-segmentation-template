@@ -3,10 +3,8 @@ import pytorch_lightning as pl
 import hydra
 import wandb
 from omegaconf import OmegaConf, DictConfig
-from hydra.utils import instantiate
 from pathlib import Path
 
-from seg_lapa.networks.deeplab.deeplab import DeepLab
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.config_parse import train_conf
