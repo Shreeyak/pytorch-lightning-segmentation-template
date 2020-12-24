@@ -5,6 +5,7 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
 from seg_lapa.datasets.lapa import LaPaDataModule
+from seg_lapa.config_parse.conf_utils import cleaned_asdict
 
 
 @dataclass
@@ -25,12 +26,7 @@ class LapaConf(DatasetConf):
     resize_w: int
 
     def get_datamodule(self) -> LaPaDataModule:
-        # Clean the arguments
-        args = vars(self)
-        args.pop('name')
-        args.pop('__initialised__')
-
-        return LaPaDataModule(**args)
+        return LaPaDataModule(**cleaned_asdict(self))
 
 
 valid_options = {

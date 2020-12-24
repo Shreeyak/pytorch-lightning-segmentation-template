@@ -5,6 +5,8 @@ import pytorch_lightning as pl
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
+from seg_lapa.config_parse.conf_utils import cleaned_asdict
+
 
 @dataclass
 class TrainerConf(ABC):
@@ -29,12 +31,7 @@ class TrainerConfig(TrainerConf):
     resume_from_checkpoint: Optional[str]
 
     def get_trainer(self) -> pl.Trainer:
-        # Clean the arguments
-        args = vars(self)
-        args.pop('name')
-        args.pop("__initialised__")
-
-        trainer = pl.Trainer(**args)
+        trainer = pl.Trainer(**cleaned_asdict(self))
         return trainer
 
 

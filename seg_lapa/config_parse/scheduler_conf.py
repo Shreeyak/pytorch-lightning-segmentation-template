@@ -6,6 +6,8 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 from torch.optim.optimizer import Optimizer
 
+from seg_lapa.config_parse.conf_utils import cleaned_asdict
+
 
 @dataclass
 class SchedulerConf(ABC):
@@ -30,14 +32,9 @@ class CyclicConfig(SchedulerConf):
     step_size_down: Optional[int]
 
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.CyclicLR:
-        # Clean the arguments
-        args = vars(self)
-        args.pop('name', None)
-        args.pop('__initialised__', None)
-
         return torch.optim.lr_scheduler.CyclicLR(optimizer,
                                                  cycle_momentum=False,
-                                                 **args)
+                                                 **cleaned_asdict(self))
 
 
 @dataclass()
@@ -61,12 +58,7 @@ class StepConfig(SchedulerConf):
     gamma: float
 
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.StepLR:
-        # Clean the arguments
-        args = vars(self)
-        args.pop('name', None)
-        args.pop('__initialised__', None)
-
-        return torch.optim.lr_scheduler.StepLR(optimizer, **args)
+        return torch.optim.lr_scheduler.StepLR(optimizer, **cleaned_asdict(self))
 
 
 @dataclass()
@@ -81,12 +73,7 @@ class PlateauConfig(SchedulerConf):
     verbose: bool
 
     def get_scheduler(self, optimizer: Optimizer) -> torch.optim.lr_scheduler.ReduceLROnPlateau:
-        # Clean the arguments
-        args = vars(self)
-        args.pop('name', None)
-        args.pop('__initialised__', None)
-
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **args)
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **cleaned_asdict(self))
 
 
 valid_options = {
