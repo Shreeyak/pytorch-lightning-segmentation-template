@@ -31,7 +31,7 @@ git clone git@github.com:Shreeyak/pytorch-lightning-segmentation-lapa.git
 cd pytorch-lightning-segmentation-lapa
 pip install -e .   
 pip install -r requirements-dev.txt
- ```   
+```   
 
 #### Developer dependencies
 This repository uses git pre-commit hooks to auto-format code.
@@ -57,6 +57,10 @@ To use this template for your own project:
 1. Search and replace `seg_lapa` with your project name
 2. Edit setup.py with new package name, requirements and other details
 3. Replace the model, dataloaders, loss function, metric with your own!
+4. Update the readme! Add your own links to your paper at the top, add citation info at bottom.
+
+This template was based on the Pytorch-Lightning 
+[seed project](https://github.com/PyTorchLightning/deep-learning-project-template).
 
 ### Notes
 #### Absolute imports
