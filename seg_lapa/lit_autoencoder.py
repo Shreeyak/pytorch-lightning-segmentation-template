@@ -11,19 +11,10 @@ from torchvision import transforms
 
 
 class LitAutoEncoder(pl.LightningModule):
-
     def __init__(self):
         super().__init__()
-        self.encoder = nn.Sequential(
-            nn.Linear(28 * 28, 64),
-            nn.ReLU(),
-            nn.Linear(64, 3)
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(3, 64),
-            nn.ReLU(),
-            nn.Linear(64, 28 * 28)
-        )
+        self.encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
+        self.decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions
@@ -50,16 +41,16 @@ def cli_main():
     # args
     # ------------
     parser = ArgumentParser()
-    parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--hidden_dim', type=int, default=128)
+    parser.add_argument("--batch_size", default=32, type=int)
+    parser.add_argument("--hidden_dim", type=int, default=128)
     parser = pl.Trainer.add_argparse_args(parser)
     args = parser.parse_args()
 
     # ------------
     # data
     # ------------
-    dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
-    mnist_test = MNIST('', train=False, download=True, transform=transforms.ToTensor())
+    dataset = MNIST("", train=True, download=True, transform=transforms.ToTensor())
+    mnist_test = MNIST("", train=False, download=True, transform=transforms.ToTensor())
     mnist_train, mnist_val = random_split(dataset, [55000, 5000])
 
     train_loader = DataLoader(mnist_train, batch_size=args.batch_size)
@@ -84,5 +75,5 @@ def cli_main():
     print(result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli_main()

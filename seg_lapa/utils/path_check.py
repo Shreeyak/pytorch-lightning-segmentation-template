@@ -8,8 +8,12 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent.parent
 
 
-def get_path(input_path: Union[str, Path], path_type: str = 'dir', must_exist: Optional[bool] = None,
-             force_relative_to_project: bool = False) -> Path:
+def get_path(
+    input_path: Union[str, Path],
+    path_type: str = "dir",
+    must_exist: Optional[bool] = None,
+    force_relative_to_project: bool = False,
+) -> Path:
     """Converts a str to a pathlib Path with added checks
 
     Args:
@@ -25,7 +29,7 @@ def get_path(input_path: Union[str, Path], path_type: str = 'dir', must_exist: O
                                    regardless of where the package is called from.
 
     """
-    valid_pathtypes = ['dir', 'file']
+    valid_pathtypes = ["dir", "file"]
     if path_type not in valid_pathtypes:
         raise ValueError(f"Invalid path type '{path_type}'. Valid options: {valid_pathtypes}")
 
@@ -42,10 +46,10 @@ def get_path(input_path: Union[str, Path], path_type: str = 'dir', must_exist: O
             if not input_path.exists():
                 raise ValueError(f"Could not find {path_type}. Does not exist: {input_path}")
 
-            if not input_path.is_dir() and path_type == 'dir':
+            if not input_path.is_dir() and path_type == "dir":
                 raise ValueError(f"Not a dir: {input_path}")
 
-            if not input_path.is_file() and path_type == 'file':
+            if not input_path.is_file() and path_type == "file":
                 raise ValueError(f"Not a file: {input_path}")
         else:
             # Ensure path doesn't already exist

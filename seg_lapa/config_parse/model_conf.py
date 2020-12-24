@@ -6,6 +6,7 @@ from pydantic.dataclasses import dataclass
 
 from seg_lapa.networks.deeplab.deeplab import DeepLab
 
+
 @dataclass
 class ModelConf(ABC):
     name: str
@@ -26,8 +27,8 @@ class Deeplabv3Conf(ModelConf):
     def get_model(self) -> torch.nn.Module:
         # Clean the arguments
         args = vars(self)
-        args.pop('name', None)
-        args.pop('__initialised__', None)
+        args.pop("name", None)
+        args.pop("__initialised__", None)
 
         return DeepLab(**args)
 
@@ -41,7 +42,9 @@ def validate_modelconf(cfg_model: DictConfig) -> DeepLab:
     try:
         modelconf = valid_options[cfg_model.name](**cfg_model)
     except KeyError:
-        raise ValueError(f"Invalid Config: '{cfg_model.name}' is not a valid optimizer. "
-                         f"Valid Options: {list(valid_options.keys())}")
+        raise ValueError(
+            f"Invalid Config: '{cfg_model.name}' is not a valid optimizer. "
+            f"Valid Options: {list(valid_options.keys())}"
+        )
 
     return modelconf

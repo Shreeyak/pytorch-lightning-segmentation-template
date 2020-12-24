@@ -1,4 +1,3 @@
-
 import cv2
 import enum
 import numpy as np
@@ -27,6 +26,7 @@ class LapaDataset(Dataset):
     References:
         https://github.com/JDAI-CV/lapa-dataset
     """
+
     @enum.unique
     class LapaClassId(enum.IntEnum):
         # Mapping of the classes within the lapa dataset
@@ -42,21 +42,19 @@ class LapaDataset(Dataset):
         LIP_LOWER = 9
         HAIR = 10
 
-    SUBDIR_IMAGES = 'images'
-    SUBDIR_LABELS = 'labels'
+    SUBDIR_IMAGES = "images"
+    SUBDIR_LABELS = "labels"
 
-    SUBDIR_SPLIT = {
-        DatasetSplit.TRAIN: 'train',
-        DatasetSplit.VAL: 'val',
-        DatasetSplit.TEST: 'test'
-    }
+    SUBDIR_SPLIT = {DatasetSplit.TRAIN: "train", DatasetSplit.VAL: "val", DatasetSplit.TEST: "test"}
 
-    def __init__(self,
-                 root_dir: Union[str, Path],
-                 data_split: DatasetSplit,
-                 image_ext: Tuple[str] = ('*.jpg',),
-                 label_ext: Tuple[str] = ('*.png',),
-                 augmentations: Optional[A.Compose] = None):
+    def __init__(
+        self,
+        root_dir: Union[str, Path],
+        data_split: DatasetSplit,
+        image_ext: Tuple[str] = ("*.jpg",),
+        label_ext: Tuple[str] = ("*.png",),
+        augmentations: Optional[A.Compose] = None,
+    ):
         super().__init__()
         self.augmentations = augmentations
         self.image_ext = image_ext  # The file extensions of input images to search for in input dir
@@ -87,8 +85,8 @@ class LapaDataset(Dataset):
         # Apply image augmentations
         if self.augmentations is not None:
             augmented = self.augmentations(image=img, mask=label)
-            img = augmented['image']
-            label = augmented['mask']
+            img = augmented["image"]
+            label = augmented["mask"]
 
         # Convert to Tensor. RGB images are normally numpy uint8 array with shape (H, W, 3).
         # RGB tensors should be (3, H, W) with dtype float32 in range [0, 1] (may change with normalization applied)
@@ -106,14 +104,14 @@ class LapaDataset(Dataset):
 
     @staticmethod
     def _check_dir(dir_path: Union[str, Path]) -> Path:
-        return get_path(dir_path, path_type='dir', must_exist=True)
+        return get_path(dir_path, path_type="dir", must_exist=True)
 
     @staticmethod
     def _read_label(label_path: Path) -> np.ndarray:
         mask = cv2.imread(str(label_path), cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH | cv2.IMREAD_ANYCOLOR)
 
         if len(mask.shape) != 2:
-            raise RuntimeError(f'The shape of label must be (H, W). Got: {mask.shape}')
+            raise RuntimeError(f"The shape of label must be (H, W). Got: {mask.shape}")
 
         return mask.astype(np.int32)
 
@@ -123,7 +121,7 @@ class LapaDataset(Dataset):
         mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
 
         if len(mask.shape) != 3:
-            raise RuntimeError(f'The shape of image must be (H, W, C). Got: {mask.shape}')
+            raise RuntimeError(f"The shape of image must be (H, W, C). Got: {mask.shape}")
 
         return mask
 
@@ -135,8 +133,10 @@ class LapaDataset(Dataset):
         num_images = len(self._datalist_input)
         num_labels = len(self._datalist_label)
         if num_images != num_labels:
-            raise ValueError(f'The number of images ({num_images}) and labels ({num_labels}) do not match.'
-                             f'\n  Images dir: {self.images_dir}\n  Labels dir:{self.labels_dir}')
+            raise ValueError(
+                f"The number of images ({num_images}) and labels ({num_labels}) do not match."
+                f"\n  Images dir: {self.images_dir}\n  Labels dir:{self.labels_dir}"
+            )
 
     def _get_matching_files_in_dir(self, data_dir: Union[str, Path], wildcard_patterns: Tuple[str]) -> List[Path]:
         """Get filenames within a dir that match a set of wildcard patterns
@@ -156,8 +156,10 @@ class LapaDataset(Dataset):
             list_matching_files += sorted(data_dir.glob(ext))
 
         if len(list_matching_files) == 0:
-            raise ValueError('No matching files found in given directory.'
-                             f'\n  Directory: {data_dir}\n  Search patterns: {wildcard_patterns}')
+            raise ValueError(
+                "No matching files found in given directory."
+                f"\n  Directory: {data_dir}\n  Search patterns: {wildcard_patterns}"
+            )
 
         return list_matching_files
 
@@ -167,7 +169,7 @@ class LaPaDataModule(pl.LightningDataModule):
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.data_dir = get_path(data_dir, path_type='dir', must_exist=True)
+        self.data_dir = get_path(data_dir, path_type="dir", must_exist=True)
         self.resize_h = resize_h
         self.resize_w = resize_w
 
@@ -177,13 +179,13 @@ class LaPaDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         """download dataset, tokenize, etc"""
-        '''
+        """
         Downloading original data from author's google drive link: 
             >>> import gdown
             >>> url = "https://drive.google.com/uc?export=download&id=1EtyCtiQZt2Y5qrb-0YxRxaVLpVcgCOQV"
             >>> output = "lapa-downloaded.tar.gz"
             >>> gdown.download(url, output, quiet=False, proxy=False)
-        '''
+        """
         pass
 
     def setup(self, stage=None):
