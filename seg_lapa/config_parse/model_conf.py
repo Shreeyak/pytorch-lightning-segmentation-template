@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
 from seg_lapa.networks.deeplab.deeplab import DeepLab
-from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
+from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,7 @@ class Deeplabv3Conf(ModelConf):
     enable_amp: bool = False  # Should always be false, since PL takes case of 16bit training
 
     def get_model(self) -> torch.nn.Module:
-        return DeepLab(**cleaned_asdict(self))
+        return DeepLab(**asdict_filtered(self))
 
 
 valid_names = {

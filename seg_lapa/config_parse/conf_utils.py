@@ -4,7 +4,7 @@ from typing import Optional, Sequence, Dict
 from omegaconf import DictConfig
 
 
-def cleaned_asdict(obj, remove_keys: Optional[Sequence[str]] = None) -> Dict:
+def asdict_filtered(obj, remove_keys: Optional[Sequence[str]] = None) -> Dict:
     """Returns the attributes of a dataclass in the form of a dict, with unwanted attributes removed.
     Each config group has the term 'name', which is helpful in identifying the node that was chosen
     in the config group (Eg. config group = optimizers, nodes = adam, sgd).

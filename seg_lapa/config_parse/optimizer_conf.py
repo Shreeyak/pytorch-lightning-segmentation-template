@@ -4,7 +4,7 @@ import torch
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
-from seg_lapa.config_parse.conf_utils import cleaned_asdict, validate_config_group_generic
+from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class AdamConf(OptimConf):
     weight_decay: float
 
     def get_optimizer(self, model_params) -> torch.optim.Optimizer:
-        return torch.optim.Adam(params=model_params, **cleaned_asdict(self))
+        return torch.optim.Adam(params=model_params, **asdict_filtered(self))
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class SgdConf(OptimConf):
     nesterov: bool
 
     def get_optimizer(self, model_params) -> torch.optim.Optimizer:
-        return torch.optim.SGD(params=model_params, **cleaned_asdict(self))
+        return torch.optim.SGD(params=model_params, **asdict_filtered(self))
 
 
 valid_names = {"adam": AdamConf, "sgd": SgdConf}
