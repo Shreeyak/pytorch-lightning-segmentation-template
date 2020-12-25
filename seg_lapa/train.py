@@ -87,12 +87,14 @@ def main(cfg: DictConfig):
         print("\nResolved Dataclass:\n", config, "\n")
 
     wb_logger = config.logger.get_logger(cfg)
-
-    model = DeeplabV3plus(config)
-
     trainer = config.trainer.get_trainer(wb_logger)
+    model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
+
+    # Run Training
     trainer.fit(model, datamodule=dm)
+
+    # Run Testing
     result = trainer.test(ckpt_path=None)  # Prints the final result
 
     wandb.finish()
