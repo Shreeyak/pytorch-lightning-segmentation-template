@@ -83,7 +83,7 @@ def main(cfg: DictConfig):
 
     config = train_conf.parse_config(cfg)
 
-    wandb.init(project="segmentation", entity="cleargrasp2", name=None)
+    logger_wandb = config.logger.get_logger(cfg)
 
     model = DeeplabV3plus(config)
 
