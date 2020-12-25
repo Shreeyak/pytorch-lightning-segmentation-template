@@ -19,7 +19,7 @@ class TrainerConf(ABC):
 
 @dataclass(frozen=True)
 class TrainerConfig(TrainerConf):
-    gpus: Union[int, str, List[int]]
+    gpus: Union[str, List[int]]
     overfit_batches: Union[int, float]
     distributed_backend: Optional[str]
     precision: int
