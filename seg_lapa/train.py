@@ -60,7 +60,7 @@ class DeeplabV3plus(pl.LightningModule):
             "test_loss": loss,
         }
 
-    def training_epoch_end(self,  outputs: list):
+    def training_epoch_end(self,  outputs):
         loss = torch.stack([x['loss'] for x in outputs]).mean()
         wandb.log({"Train/Epoch Loss": loss})
 
