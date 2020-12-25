@@ -1,6 +1,6 @@
 # @package _group_
 name: trainer
-gpus: "0"
+gpus: [0]
 overfit_batches: 0.0
 distributed_backend: "ddp"
 precision: 16
