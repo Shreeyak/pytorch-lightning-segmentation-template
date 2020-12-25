@@ -1,12 +1,13 @@
 import pytorch_lightning as pl
 import hydra
 from omegaconf import OmegaConf, DictConfig
+import wandb
+import torch
 
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.config_parse import train_conf
 from seg_lapa import metrics
-from seg_lapa.accumulator.accumulator import LossAccumulator
 
 
 class DeeplabV3plus(pl.LightningModule):
@@ -16,7 +17,6 @@ class DeeplabV3plus(pl.LightningModule):
         self.config = config
         self.model = self.config.model.get_model()
         self.iou_meter = metrics.IouMetric(num_classes=config.model.num_classes)
-        self.loss_accumulator = LossAccumulator()
 
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions
@@ -29,20 +29,21 @@ class DeeplabV3plus(pl.LightningModule):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
+        batch_loss = loss / len(batch[0])
+        wandb.log({"Train/BatchWise Loss": batch_loss})
 
         # to aggregate epoch metrics use self.log or a metric. self.log logs metrics for each training_step.
         # It also logs the average across the epoch, to the progress bar and logger
         # "train_loss" is a reserved keyword
-        self.log("loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.loss_accumulator.accumulate(loss, len(batch[0]))
         return loss
 
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
+        batch_loss = loss/len(batch[0])
 
-        self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        wandb.log({"Val/BatchWise Loss": batch_loss})
 
         return {
             "val_loss": loss,
@@ -52,20 +53,20 @@ class DeeplabV3plus(pl.LightningModule):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
-
-        self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        batch_loss = loss / len(batch[0])
+        wandb.log({"Test/Loss": batch_sloss})
 
         return {
             "test_loss": loss,
         }
 
-    def training_epoch_end(self, outputs):
-        print('training_epoch_end', outputs)
+    def training_epoch_end(self,  outputs: list):
+        loss = torch.stack([x['loss'] for x in outputs]).mean()
+        wandb.log({"Train/Epoch Loss": loss})
 
     def validation_epoch_end(self, outputs):
-        print("validation_epoch_end", outputs)
-        # loss_val = torch.stack([x['val_loss'] for x in outputs]).mean()
-        # self.log('val_loss_epoch', loss_val)
+        loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        wandb.log({"Val/Epoch Loss": loss})
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
@@ -83,6 +84,9 @@ def main(cfg: DictConfig):
 
     trainer = config.trainer.get_trainer()
     dm = config.dataset.get_datamodule()
+
+    wandb.init(project="segmentation", entity="cleargrasp2", name=str(trainer.logger.version))
+    wandb.watch(model)
 
     trainer.fit(model, datamodule=dm)
 

@@ -1,12 +1,12 @@
 # @package _group_
 name: trainer
 gpus: "0,1"
-overfit_batches: 0.0
+overfit_batches: 3
 distributed_backend: "ddp"
 precision: 16
 limit_train_batches: 1.0
 limit_val_batches: 1.0
 limit_test_batches: 1.0
 fast_dev_run: False
-max_epochs: 1000
+max_epochs: 1
 resume_from_checkpoint: null
