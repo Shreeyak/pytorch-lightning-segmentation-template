@@ -3,6 +3,7 @@ import hydra
 from omegaconf import OmegaConf, DictConfig
 import wandb
 import torch
+import torch.distributed as dist
 
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.config_parse.train_conf import TrainConf
@@ -29,7 +30,9 @@ class DeeplabV3plus(pl.LightningModule):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
-        batch_loss = loss / len(batch[0])
+
+        gather_t = self.aggregate(loss)
+        batch_loss = sum(gather_t) / (len(batch[0]) * dist.get_world_size())
         wandb.log({"Train/BatchWise Loss": batch_loss})
 
         # to aggregate epoch metrics use self.log or a metric. self.log logs metrics for each training_step.
@@ -41,8 +44,9 @@ class DeeplabV3plus(pl.LightningModule):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
-        batch_loss = loss/len(batch[0])
 
+        gather_t = self.aggregate(loss)
+        batch_loss = sum(gather_t) / (len(batch[0]) * dist.get_world_size())
         wandb.log({"Val/BatchWise Loss": batch_loss})
 
         return {
@@ -60,17 +64,29 @@ class DeeplabV3plus(pl.LightningModule):
             "test_loss": loss,
         }
 
-    def training_epoch_end(self,  outputs):
-        loss = torch.stack([x['loss'] for x in outputs]).mean()
+    def training_epoch_end(self, outputs):
+        losses = torch.stack([x['loss'] for x in outputs])
+        gather_t = self.aggregate(losses)
+        gather_t = torch.flatten(torch.stack(gather_t))
+        loss = gather_t.mean()
         wandb.log({"Train/Epoch Loss": loss})
 
     def validation_epoch_end(self, outputs):
-        loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        losses = torch.stack([x['val_loss'] for x in outputs])
+        gather_t = self.aggregate(losses)
+        gather_t = torch.flatten(torch.stack(gather_t))
+        loss = gather_t.mean()
         wandb.log({"Val/Epoch Loss": loss})
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
         return optimizer
+
+    def aggregate(self, tensor):
+        gather_t = [torch.ones_like(tensor) for _ in range(dist.get_world_size())]
+        dist.all_gather(gather_t, tensor)
+
+        return gather_t
 
 
 @hydra.main(config_path="config", config_name="train")
