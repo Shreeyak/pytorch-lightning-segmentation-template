@@ -1,3 +1,5 @@
+import os
+
 import pytorch_lightning as pl
 import hydra
 from omegaconf import OmegaConf, DictConfig
@@ -41,7 +43,7 @@ class DeeplabV3plus(pl.LightningModule):
         inputs, labels = batch
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
-        batch_loss = loss/len(batch[0])
+        batch_loss = loss / len(batch[0])
 
         wandb.log({"Val/BatchWise Loss": batch_loss})
 
@@ -60,12 +62,12 @@ class DeeplabV3plus(pl.LightningModule):
             "test_loss": loss,
         }
 
-    def training_epoch_end(self,  outputs):
-        loss = torch.stack([x['loss'] for x in outputs]).mean()
+    def training_epoch_end(self, outputs):
+        loss = torch.stack([x["loss"] for x in outputs]).mean()
         wandb.log({"Train/Epoch Loss": loss})
 
     def validation_epoch_end(self, outputs):
-        loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        loss = torch.stack([x["val_loss"] for x in outputs]).mean()
         wandb.log({"Val/Epoch Loss": loss})
 
     def configure_optimizers(self):
@@ -75,23 +77,20 @@ class DeeplabV3plus(pl.LightningModule):
 
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
-    print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
-    print(cfg)
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    if local_rank == 0:
+        print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
 
     config = train_conf.parse_config(cfg)
+
+    wandb.init(project="segmentation", entity="cleargrasp2", name=None)
 
     model = DeeplabV3plus(config)
 
     trainer = config.trainer.get_trainer()
     dm = config.dataset.get_datamodule()
-
-    wandb.init(project="segmentation", entity="cleargrasp2", name=str(trainer.logger.version))
-    wandb.watch(model)
-
     trainer.fit(model, datamodule=dm)
-
-    result = trainer.test()
-    print(result)
+    result = trainer.test()  # Prints the final result
 
 
 if __name__ == "__main__":
