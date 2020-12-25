@@ -54,7 +54,7 @@ class DeeplabV3plus(pl.LightningModule):
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
         batch_loss = loss / len(batch[0])
-        wandb.log({"Test/Loss": batch_sloss})
+        wandb.log({"Test/Loss": batch_loss})
 
         return {
             "test_loss": loss,
