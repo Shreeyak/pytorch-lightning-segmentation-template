@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Optional, Sequence, Dict
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 
 def asdict_filtered(obj, remove_keys: Optional[Sequence[str]] = None) -> Dict:
@@ -51,7 +51,8 @@ def validate_config_group_generic(
         dataclass_config = mapping_names_dataclass[cfg_group.name]
 
         # Init the dataclass using hydra config
-        dataconf = dataclass_config(**cfg_group)
+        cfg_asdict = OmegaConf.to_container(cfg_group, resolve=True)
+        dataconf = dataclass_config(**cfg_asdict)
 
     except KeyError:
         if config_category is None:
