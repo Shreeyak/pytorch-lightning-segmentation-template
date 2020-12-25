@@ -3,6 +3,7 @@ lightning_logs/
 MNIST
 .DS_Store
 *.tar.gz
+wandb/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -33,17 +34,17 @@ wheels/
 *.egg
 MANIFEST
 
-# Lightning /research  
+# Lightning /research
 test_tube_exp/
 tests/tests_tt_dir/
 tests/save_dir
-default/   
+default/
 data/
 test_tube_logs/
 test_tube_data/
 #datasets/  # dir in code called datasets.
 model_weights/
-tests/save_dir  
+tests/save_dir
 tests/tests_tt_dir/
 processed/
 raw/
