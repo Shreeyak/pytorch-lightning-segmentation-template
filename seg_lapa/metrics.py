@@ -1,25 +1,35 @@
 import numpy as np
 import torch
+from dataclasses import dataclass
 
 
+@dataclass
 class IouMetric:
+    iou_per_class: np.ndarray
+    tp: torch.Tensor
+    fp: torch.Tensor
+    fn: torch.Tensor
+    total_px: torch.Tensor
+
+
+class Iou:
     def __init__(self, num_classes: int):
         """Calculate the Intersection over Union for multi-class segmentation
 
         This is a fast implementation of IoU that can run over the GPU
 
-        The IouMetric constructs a confusion matrix for every call (batch) and accumulates the results.
+        The Iou constructs a confusion matrix for every call (batch) and accumulates the results.
         At the end of the epoch, metrics such as IoU can be extracted.
         """
         self.num_classes = num_classes
         self.conf_mat_flattened = None  # Avoid having to assign device by initializing as None
         self.count = 0  # This isn't used as of now. Can be used to normalize the accumulated conf matrix
 
-    def reset(self):
+    def reset(self) -> None:
         self.conf_mat_flattened = None
         self.count = 0
 
-    def accumulate_confusion_matrix(self, prediction: torch.Tensor, label: torch.Tensor):
+    def accumulate(self, prediction: torch.Tensor, label: torch.Tensor) -> None:
         """Calculates and accumulates the confusion matrix for a batch"""
         label = label.detach().view(-1).long()
         prediction = prediction.detach().view(-1).long()
@@ -40,15 +50,21 @@ class IouMetric:
             self.conf_mat_flattened += conf_mat
         self.count += 1
 
-    def get_confusion_matrix(self) -> np.ndarray:
+    def get_accumulated_confusion_matrix(self) -> np.ndarray:
         """Extract the accumulated confusion matrix"""
         conf_mat = self.conf_mat_flattened.reshape((self.num_classes, self.num_classes))
         return conf_mat.cpu().numpy()
 
-    def get_iou(self) -> np.ndarray:
+    def get_iou(self) -> IouMetric:
         """Calculate the IoU based on accumulated confusion matrix"""
         if self.conf_mat_flattened is None:
-            return np.array([0.0])
+            return IouMetric(
+                iou_per_class=np.array([0] * self.num_classes),
+                tp=torch.Tensor(0),
+                fn=torch.Tensor(0),
+                fp=torch.Tensor(0),
+                total_px=torch.Tensor(0),
+            )
 
         conf_mat = self.conf_mat_flattened.reshape((self.num_classes, self.num_classes))
 
@@ -64,7 +80,7 @@ class IouMetric:
         iou_per_class = iou_per_class.cpu().numpy()
 
         # Compile into dict
-        data_r = {"iou_per_class": iou_per_class, "tp": tp, "fn": fn, "fp": fp, "total_px": total_px}
+        data_r = IouMetric(iou_per_class=iou_per_class, tp=tp, fn=fn, fp=fp, total_px=total_px)
 
         return data_r
 
@@ -83,10 +99,10 @@ def test_iou():
     pred[:, -3:, -3:] = 1
     expected_iou = [2.0 / 12, 4.0 / 14]
 
-    iou_meter = IouMetric(num_classes=2)
-    iou_meter.accumulate_confusion_matrix(pred, label)
+    iou_meter = Iou(num_classes=2)
+    iou_meter.accumulate(pred, label)
     metrics_r = iou_meter.get_iou()
-    iou_per_class = metrics_r["iou_per_class"]
+    iou_per_class = metrics_r.iou_per_class
 
     assert (iou_per_class - expected_iou).sum() < 1e-6
     print("Testing IOU: passed")

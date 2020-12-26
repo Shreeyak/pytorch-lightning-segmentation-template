@@ -19,7 +19,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        self.iou_meter = metrics.IouMetric(num_classes=config.model.num_classes)
+        self.iou_meter = metrics.Iou(num_classes=config.model.num_classes)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -45,6 +45,9 @@ class DeeplabV3plus(pl.LightningModule):
         """
         self.log("Train/loss", loss, on_step=True, on_epoch=True, sync_dist=True, sync_dist_op="avg")
 
+        # Calculate Metrics
+        self.iou_meter.accumulate(outputs, inputs)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -52,6 +55,9 @@ class DeeplabV3plus(pl.LightningModule):
         outputs = self.model(inputs)
         loss = self.cross_entropy_loss(outputs, labels)
         self.log("Val/loss", loss, sync_dist=True, sync_dist_op="avg")
+
+        # Calculate Metrics
+        self.iou_meter.accumulate(outputs, inputs)
 
         return {"val_loss": loss}
 
@@ -61,16 +67,25 @@ class DeeplabV3plus(pl.LightningModule):
         loss = self.cross_entropy_loss(outputs, labels)
         self.log("Test/loss", loss, sync_dist=True, sync_dist_op="avg")
 
+        # Calculate Metrics
+        self.iou_meter.accumulate(outputs, inputs)
+
         return {"test_loss": loss}
 
     def training_epoch_end(self, outputs: List[Any]):
-        pass
+        metrics_avg = self.iou_meter.get_iou()
+        self.log("Train/mIoU", metrics_avg.iou_per_class.mean())
+        self.iou_meter.reset()
 
     def validation_epoch_end(self, outputs: List[Any]):
-        pass
+        metrics_avg = self.iou_meter.get_iou()
+        self.log("Val/mIoU", metrics_avg.iou_per_class.mean())
+        self.iou_meter.reset()
 
     def test_epoch_end(self, outputs: List[Any]):
-        pass
+        metrics_avg = self.iou_meter.get_iou()
+        self.log("Test/mIoU", metrics_avg.iou_per_class.mean())
+        self.iou_meter.reset()
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
