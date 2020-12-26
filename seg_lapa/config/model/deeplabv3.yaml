@@ -1,7 +1,7 @@
 # @package _group_
 name: deeplabv3
-backbone: "drn"  # Possible values for backbone: ['xception', 'resnet', 'drn']
+backbone: "drn" # Possible values for backbone: ['xception', 'resnet', 'drn']
 num_classes: 11
-output_stride: 8  # Not used with 'drn' backbone
-sync_bn: False  # This enables custom batchnorm code that syncs across gpus.
+output_stride: 8 # Not used with 'drn' backbone
+sync_bn: False # This enables custom batchnorm code that syncs across gpus.
 #enable_amp: False  # Should always be false, since PL takes case of 16bit training
