@@ -79,11 +79,11 @@ class DeeplabV3plus(pl.LightningModule):
 
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
+    print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
     config = train_conf.parse_config(cfg)
 
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     if local_rank == 0:
-        print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
         print("\nResolved Dataclass:\n", config, "\n")
 
     wb_logger = config.logger.get_logger(cfg)
