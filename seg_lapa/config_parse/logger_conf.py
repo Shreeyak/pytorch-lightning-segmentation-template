@@ -26,6 +26,7 @@ class WandbConf(LoggerConf):
     project: str
     run_name: Optional[str]
     run_id: Optional[str]
+    save_dir: Optional[str]
 
     def get_logger(self, cfg: DictConfig) -> pl_loggers.WandbLogger:
         """Returns the Weights and Biases (wandb) logger object (really an wandb Run object)
