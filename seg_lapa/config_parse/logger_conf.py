@@ -4,8 +4,8 @@ from typing import Optional
 import wandb
 from omegaconf import DictConfig, OmegaConf
 from pydantic.dataclasses import dataclass
+from pytorch_lightning import loggers as pl_loggers
 
-from seg_lapa.networks.deeplab.deeplab import DeepLab
 from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
 
@@ -27,7 +27,7 @@ class WandbConf(LoggerConf):
     run_name: Optional[str]
     run_id: Optional[str]
 
-    def get_logger(self, cfg: DictConfig) -> wandb.wandb_sdk.wandb_run.Run:
+    def get_logger(self, cfg: DictConfig) -> pl_loggers.WandbLogger:
         """Returns the Weights and Biases (wandb) logger object (really an wandb Run object)
 
         The run object corresponds to a single execution of your script, typically this is an ML experiment.
@@ -51,8 +51,8 @@ class WandbConf(LoggerConf):
 
         cfg_dict = OmegaConf.to_container(cfg, resolve=True)
 
-        logger_wandb = wandb.init(name=run_name, id=run_id, config=cfg_dict, **args_dict)
-        return logger_wandb
+        wb_logger = pl_loggers.WandbLogger(name=run_name, id=run_id, config=cfg_dict, **args_dict)
+        return wb_logger
 
 
 valid_names = {
