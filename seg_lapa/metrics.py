@@ -30,9 +30,16 @@ class Iou:
         self.count = 0
 
     def accumulate(self, prediction: torch.Tensor, label: torch.Tensor) -> None:
-        """Calculates and accumulates the confusion matrix for a batch"""
-        label = label.detach().view(-1).long()
-        prediction = prediction.detach().view(-1).long()
+        """Calculates and accumulates the confusion matrix for a batch
+
+        Args:
+            prediction: The predictions of the network (after argmax of the probabilities).
+                        Shape: [N, H, W]
+            label: The label (ground truth). Each pixel contains an int corresponding to the class it belongs to.
+                        Shape: [N, H, W]
+        """
+        label = label.detach().view(-1).long()  # .cpu()
+        prediction = prediction.detach().view(-1).long()  # .cpu()
 
         # Note: DO NOT pass in argument "minlength". It cause huge slowdowns on GPU (~100x, tested with Pytorch 1.6.0)
         conf_mat = torch.bincount(self.num_classes * label + prediction)
