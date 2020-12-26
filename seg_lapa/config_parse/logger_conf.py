@@ -19,6 +19,15 @@ class LoggerConf(ABC):
 
 
 @dataclass(frozen=True)
+class DisabledLoggerConf(LoggerConf):
+    name: str
+
+    @staticmethod
+    def get_logger(*args):
+        return False
+
+
+@dataclass(frozen=True)
 class WandbConf(LoggerConf):
     """Weights and Biases. Ref: wandb.com"""
 
@@ -58,6 +67,7 @@ class WandbConf(LoggerConf):
 
 valid_names = {
     "wandb": WandbConf,
+    "disabled": DisabledLoggerConf,
 }
 
 

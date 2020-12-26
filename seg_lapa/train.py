@@ -4,6 +4,7 @@ from typing import List, Any
 import hydra
 import pytorch_lightning as pl
 import torch
+import wandb
 from omegaconf import OmegaConf, DictConfig
 
 from seg_lapa import metrics
@@ -93,7 +94,7 @@ def main(cfg: DictConfig):
     trainer.fit(model, datamodule=dm)
     result = trainer.test(ckpt_path=None)  # Prints the final result
 
-    wb_logger.finish()
+    wandb.finish()
 
 
 if __name__ == "__main__":
