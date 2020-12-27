@@ -18,15 +18,15 @@ class Iou(metrics.Metric):
     def __init__(self, num_classes: int = 11, normalize: bool = False):
         """Calculates the metrics iou, true positives and false positives/negatives for multi-class classification
         problems such as semantic segmentation.
-        Because this is an expensive operation, we do not compute or sync the values per step
+        Because this is an expensive operation, we do not compute or sync the values per step.
+
+        Forward accepts:
+
+        - ``prediction`` (float or long tensor): ``(N, H, W)``
+        - ``label`` (long tensor): ``(N, H, W)``
 
         Note:
-        This metric produces a dataclass as output, so it can not be directly logged.
-
-        Forward accepts
-
-        - ``preds`` (float or long tensor): ``(N, H, W)``
-        - ``target`` (long tensor): ``(N, H, W)``)``
+            This metric produces a dataclass as output, so it can not be directly logged.
         """
         super().__init__(compute_on_step=False, dist_sync_on_step=False)
 
@@ -36,6 +36,7 @@ class Iou(metrics.Metric):
 
         self.acc_confusion_matrix = None  # The accumulated confusion matrix
         self.count_samples = None  # Number of samples seen
+        # Use `add_state()` for attr to track their state and synchronize state across processes
         self.add_state(
             "acc_confusion_matrix", default=torch.zeros((self.num_classes, self.num_classes)), dist_reduce_fx="sum"
         )
@@ -66,15 +67,6 @@ class Iou(metrics.Metric):
 
     def compute(self):
         """Compute the final IoU and other metrics across all samples seen"""
-
-        """
-        Total num of pixels across full dataset can easily overflow float32.
-        So the acc. conf mat needs to be in .long format. But the bincount, etc do not.
-        We can avoid this by normalizing the values. I.e., divide by 1k or something, so max value is limited
-
-        We should also normalize the conf matrix at end - i.e. Divide by num of samples.
-        This final norm conf matrix can be float32
-        """
         # Normalize the accumulated confusion matrix, if needed
         conf_mat = self.acc_confusion_matrix
         if self.normalize:
@@ -119,10 +111,11 @@ class Iou(metrics.Metric):
 # Tests
 def test_iou():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
     # Create Fake label and prediction
-    label = torch.zeros((12, 4, 4), dtype=torch.float32, device=device)
-    pred = torch.zeros((12, 4, 4), dtype=torch.float32, device=device)
+    label = torch.zeros((1, 4, 4), dtype=torch.float32, device=device)
+    pred = torch.zeros((1, 4, 4), dtype=torch.float32, device=device)
     label[:, :3, :3] = 1
     pred[:, -3:, -3:] = 1
     expected_iou = torch.tensor([2.0 / 12, 4.0 / 14], device=device)
