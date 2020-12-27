@@ -2,9 +2,9 @@ defaults:
   - dataset: lapa
   - model: deeplabv3
   - optimizer: adam
-  - trainer: trainer
+  - trainer: trainer_debug
   - scheduler: disabled
-  - logger: wandb
+  - logger: wandb_debug
 
   # To disable any .log files
   - hydra/job_logging: disabled
