@@ -38,19 +38,20 @@ class DeeplabV3plus(pl.LightningModule):
         """
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
 
-        """Log the value on GPU0 per step. Then average all steps at epoch_end."""
+        """Log the value on GPU0 per step. Also log average of all steps at epoch_end."""
         # self.log("Train/loss", loss, on_step=True, on_epoch=True)
-
-        """Log the avg. value across all GPUs per step. Also average all steps at epoch_end.
-        Alternately, you can use the ops 'sum', 'avg' and 'mean'.
+        """Log the avg. value across all GPUs per step. Also log average of all steps at epoch_end.
+        Alternately, you can use the ops 'sum' or 'avg'.
         Using sync_dist is efficient. It adds extremely minor overhead for scalar values.
         """
         self.log("Train/loss", loss, on_step=True, on_epoch=True, sync_dist=True, sync_dist_op="avg")
 
         # Calculate Metrics
-        predictions = torch.max(outputs, 1)[1]
         self.iou_meter["train"].accumulate(predictions, labels)
 
         return loss
@@ -58,11 +59,13 @@ class DeeplabV3plus(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
         self.log("Val/loss", loss, sync_dist=True, sync_dist_op="avg")
 
         # Calculate Metrics
-        predictions = torch.max(outputs, 1)[1]
         self.iou_meter["val"].accumulate(predictions, labels)
 
         return {"val_loss": loss}
@@ -70,18 +73,19 @@ class DeeplabV3plus(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
         self.log("Test/loss", loss, sync_dist=True, sync_dist_op="avg")
 
         # Calculate Metrics
-        predictions = torch.max(outputs, 1)[1]
         self.iou_meter["test"].accumulate(predictions, labels)
 
         return {"test_loss": loss}
 
     def training_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_meter["train"].get_iou()
-        print(f"Train iou metric: \n{metrics_avg}")
         self.log("Train/mIoU", metrics_avg.iou_per_class.mean())
         self.iou_meter["train"].reset()
 

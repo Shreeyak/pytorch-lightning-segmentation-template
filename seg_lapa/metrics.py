@@ -1,6 +1,8 @@
+from dataclasses import dataclass
+
 import numpy as np
 import torch
-from dataclasses import dataclass
+from pytorch_lightning import metrics
 
 
 @dataclass
@@ -22,12 +24,12 @@ class Iou:
         At the end of the epoch, metrics such as IoU can be extracted.
         """
         self.num_classes = num_classes
-        self.conf_mat_flattened = None  # Avoid having to assign device by initializing as None
-        self.count = 0  # This isn't used as of now. Can be used to normalize the accumulated conf matrix
+        self.acc_confusion_matrix = None  # Avoid having to assign device by initializing as None
+        self.count_samples = 0  # This isn't used as of now. Can be used to normalize the accumulated conf matrix
 
     def reset(self) -> None:
-        self.conf_mat_flattened = None
-        self.count = 0
+        self.acc_confusion_matrix = None
+        self.count_samples = 0
 
     def accumulate(self, prediction: torch.Tensor, label: torch.Tensor) -> None:
         """Calculates and accumulates the confusion matrix for a batch
@@ -51,20 +53,20 @@ class Iou:
             conf_mat = torch.cat((conf_mat, req_padding))
 
         # Accumulate result
-        if self.conf_mat_flattened is None:
-            self.conf_mat_flattened = conf_mat
+        conf_mat = conf_mat.reshape((self.num_classes, self.num_classes))
+        if self.acc_confusion_matrix is None:
+            self.acc_confusion_matrix = conf_mat
         else:
-            self.conf_mat_flattened += conf_mat
-        self.count += 1
+            self.acc_confusion_matrix += conf_mat
+        self.count_samples += 1
 
     def get_accumulated_confusion_matrix(self) -> np.ndarray:
         """Extract the accumulated confusion matrix"""
-        conf_mat = self.conf_mat_flattened.reshape((self.num_classes, self.num_classes))
-        return conf_mat.cpu().numpy()
+        return self.acc_confusion_matrix.cpu().numpy()
 
     def get_iou(self) -> IouMetric:
         """Calculate the IoU based on accumulated confusion matrix"""
-        if self.conf_mat_flattened is None:
+        if self.acc_confusion_matrix is None:
             return IouMetric(
                 iou_per_class=np.array([0] * self.num_classes),
                 tp=torch.Tensor(0),
@@ -73,7 +75,7 @@ class Iou:
                 total_px=torch.Tensor(0),
             )
 
-        conf_mat = self.conf_mat_flattened.reshape((self.num_classes, self.num_classes))
+        conf_mat = self.acc_confusion_matrix
 
         tp = torch.diagonal(conf_mat)
         fn = torch.sum(conf_mat, dim=0) - tp
