@@ -25,7 +25,7 @@ class DeeplabV3plus(pl.LightningModule):
             # "test": metrics.Iou(num_classes=config.model.num_classes),
         }
 
-        self.iou_train = metrics.IouSync(num_classes=config.model.num_classes)
+        self.iou_train = metrics.IouSync(num_classes=config.model.num_classes, get_avg_per_image=False)
         self.iou_val = metrics.IouSync(num_classes=config.model.num_classes)
         self.iou_test = metrics.IouSync(num_classes=config.model.num_classes)
 
@@ -92,9 +92,11 @@ class DeeplabV3plus(pl.LightningModule):
     def training_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_train.compute()
         self.log("Train/mIoU", metrics_avg.miou)
+        self.iou_train.reset()
 
         metrics_avg = self.iou_meter["train"].get_iou()
         self.log("Train/mIoU_Normal", metrics_avg.miou)
+        self.iou_meter["train"].reset()
 
     def validation_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_val.compute()

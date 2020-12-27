@@ -134,8 +134,8 @@ class IouSync(metrics.Metric):
 
         num_images = int(label.shape[0])
 
-        label = label.view(-1).int()
-        prediction = prediction.view(-1).int()
+        label = label.view(-1).long()  # .int()
+        prediction = prediction.view(-1).long()  # .int()
 
         # Note: DO NOT pass in argument "minlength". It cause huge slowdowns on GPU.
         # (~100x, tested with Pytorch 1.6.0, when both inputs were cast to .long() datatype)
@@ -148,7 +148,7 @@ class IouSync(metrics.Metric):
             conf_mat = torch.cat((conf_mat, req_padding))
 
         conf_mat = conf_mat.reshape((self.num_classes, self.num_classes))
-        conf_mat = conf_mat.float() / self.normalize_factor
+        # conf_mat = conf_mat.float() / self.normalize_factor
 
         self.acc_confusion_matrix += conf_mat
         self.count_samples += num_images
@@ -166,10 +166,10 @@ class IouSync(metrics.Metric):
         """
         # Average and de-normalize the accumulated confusion matrix
         conf_mat = self.acc_confusion_matrix
-        conf_mat *= self.normalize_factor
+        # conf_mat *= self.normalize_factor
 
-        if self.get_avg_per_image:
-            conf_mat = conf_mat / self.count_samples  # Get average per image
+        # if self.get_avg_per_image:
+        #     conf_mat = conf_mat / self.count_samples  # Get average per image
 
         tp = conf_mat.diagonal()
         fn = conf_mat.sum(dim=0) - tp
@@ -187,10 +187,7 @@ class IouSync(metrics.Metric):
 
 # Tests
 def test_iou():
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Create Fake label and prediction
     label = torch.zeros((12, 4, 4), dtype=torch.float32, device=device)
