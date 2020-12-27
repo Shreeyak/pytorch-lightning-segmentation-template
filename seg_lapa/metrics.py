@@ -85,9 +85,6 @@ class Iou:
 
         eps = 1e-6
         iou_per_class = (tp + eps) / (fn + fp + tp + eps)  # Use epsilon to avoid zero division errors
-
-        # Bring to CPU
-        iou_per_class = iou_per_class.cpu().numpy()
         mean_iou = iou_per_class.mean()
 
         data_r = IouMetric(iou_per_class=iou_per_class, miou=mean_iou, tp=tp, fn=fn, fp=fp, total_px=total_px)
@@ -195,13 +192,15 @@ def test_iou():
     iou_train(pred, label)
     metrics_r = iou_train.compute()
     iou_per_class = metrics_r.iou_per_class
+    assert (iou_per_class - expected_iou).sum() < 1e-6
+    print("Testing IOU PL Metric: passed")
 
+    iou_meter = Iou(num_classes=2)
+    iou_meter.accumulate(pred, label)
+    metrics_r = iou_meter.get_iou()
+    iou_per_class = metrics_r.iou_per_class
     assert (iou_per_class - expected_iou).sum() < 1e-6
     print("Testing IOU: passed")
-    print(
-        f"iou: {metrics_r.iou_per_class},\ttp: {metrics_r.tp},\tfp: {metrics_r.fp},\t"
-        f"fn: {metrics_r.fn},\tt_px: {metrics_r.total_px}"
-    )
 
 
 if __name__ == "__main__":
