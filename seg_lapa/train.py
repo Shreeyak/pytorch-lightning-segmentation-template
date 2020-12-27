@@ -19,11 +19,14 @@ class DeeplabV3plus(pl.LightningModule):
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        self.iou_meter = {
-            "train": metrics.Iou(num_classes=config.model.num_classes),
-            "val": metrics.Iou(num_classes=config.model.num_classes),
-            "test": metrics.Iou(num_classes=config.model.num_classes),
-        }
+        # self.iou_meter = {
+        #     "train": metrics.IouSync(num_classes=config.model.num_classes),
+        #     "val": metrics.IouSync(num_classes=config.model.num_classes),
+        #     "test": metrics.IouSync(num_classes=config.model.num_classes),
+        # }
+        self.iou_train = metrics.IouSync(num_classes=config.model.num_classes)
+        self.iou_val = metrics.IouSync(num_classes=config.model.num_classes)
+        self.iou_test = metrics.IouSync(num_classes=config.model.num_classes)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -52,7 +55,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.log("Train/loss", loss, on_step=True, on_epoch=True, sync_dist=True, sync_dist_op="avg")
 
         # Calculate Metrics
-        self.iou_meter["train"].accumulate(predictions, labels)
+        self.iou_train(predictions, labels)
 
         return loss
 
@@ -66,7 +69,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.log("Val/loss", loss, sync_dist=True, sync_dist_op="avg")
 
         # Calculate Metrics
-        self.iou_meter["val"].accumulate(predictions, labels)
+        self.iou_val(predictions, labels)
 
         return {"val_loss": loss}
 
@@ -80,26 +83,21 @@ class DeeplabV3plus(pl.LightningModule):
         self.log("Test/loss", loss, sync_dist=True, sync_dist_op="avg")
 
         # Calculate Metrics
-        self.iou_meter["test"].accumulate(predictions, labels)
+        self.iou_test(predictions, labels)
 
         return {"test_loss": loss}
 
     def training_epoch_end(self, outputs: List[Any]):
-        metrics_avg = self.iou_meter["train"].get_iou()
-        self.log("Train/mIoU", metrics_avg.iou_per_class.mean())
-        self.iou_meter["train"].reset()
+        metrics_avg = self.iou_train.compute()
+        self.log("Train/mIoU", metrics_avg.miou)
 
     def validation_epoch_end(self, outputs: List[Any]):
-        metrics_avg = self.iou_meter["val"].get_iou()
-        self.log("Val/mIoU", metrics_avg.iou_per_class.mean())
-        self.iou_meter["val"].reset()
-        pass
+        metrics_avg = self.iou_val.compute()
+        self.log("Val/mIoU", metrics_avg.miou)
 
     def test_epoch_end(self, outputs: List[Any]):
-        metrics_avg = self.iou_meter["test"].get_iou()
-        self.log("Test/mIoU", metrics_avg.iou_per_class.mean())
-        self.iou_meter["test"].reset()
-        pass
+        metrics_avg = self.iou_test.compute()
+        self.log("Test/mIoU", metrics_avg.miou)
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
