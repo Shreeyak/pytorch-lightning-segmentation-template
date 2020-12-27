@@ -117,7 +117,9 @@ class IouSync(metrics.Metric):
 
         self.acc_confusion_matrix = None  # The accumulated confusion matrix
         self.count_samples = None  # Number of samples seen
-        self.add_state("acc_confusion_matrix", default=[], dist_reduce_fx=None)
+        self.add_state(
+            "acc_confusion_matrix", default=torch.zeros((self.num_classes, self.num_classes)), dist_reduce_fx="sum"
+        )
         self.add_state("count_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, prediction: torch.Tensor, label: torch.Tensor):
@@ -147,9 +149,8 @@ class IouSync(metrics.Metric):
 
         conf_mat = conf_mat.reshape((self.num_classes, self.num_classes))
         conf_mat = conf_mat.float() / self.normalize_factor
-        conf_mat = torch.unsqueeze(conf_mat, dim=0)
 
-        self.acc_confusion_matrix.append(conf_mat)
+        self.acc_confusion_matrix += conf_mat
         self.count_samples += num_images
 
     def compute(self):
@@ -164,8 +165,7 @@ class IouSync(metrics.Metric):
         This final norm conf matrix can be float32
         """
         # Average and de-normalize the accumulated confusion matrix
-        conf_mat = torch.cat(self.acc_confusion_matrix, dim=0)
-        conf_mat = conf_mat.sum(dim=0)
+        conf_mat = self.acc_confusion_matrix
         conf_mat *= self.normalize_factor
 
         if self.get_avg_per_image:
@@ -216,6 +216,7 @@ def test_iou():
 
     print("Testing IOU subclassing PL Metrics", end="")
     iou_train = IouSync(num_classes=2, get_avg_per_image=False)
+    iou_train.to(device)
     iou_train(pred, label)
     metrics_r = iou_train.compute()
     iou_per_class = metrics_r.iou_per_class
