@@ -106,7 +106,6 @@ class IouSync(metrics.Metric):
         self.device = device
         # The number of pixels in a set of images can be very large. Divide conf matrix by a factor to reduce max value.
         self.normalize_factor = 10000
-        # self.register_buffer("normalize_factor", torch.Tensor(10000))
 
         self.acc_confusion_matrix = None  # The accumulated confusion matrix
         self.count_samples = None  # Number of samples seen
@@ -127,11 +126,11 @@ class IouSync(metrics.Metric):
         assert prediction.shape == label.shape
         assert len(label.shape) == 3
 
-        label = label.view(-1)
-        prediction = prediction.view(-1)
+        label = label.view(-1).int()
+        prediction = prediction.view(-1).int()
 
         # Note: DO NOT pass in argument "minlength". It cause huge slowdowns on GPU.
-        # (~100x, tested with Pytorch 1.6.0, with both input in .long() datatype)
+        # (~100x, tested with Pytorch 1.6.0, when both inputs were cast to .long() datatype)
         conf_mat = torch.bincount(self.num_classes * label + prediction)
 
         # Length of bincount depends on max value of inputs. Pad confusion matrix with zeros to get correct size.
@@ -184,8 +183,8 @@ def test_iou():
         device = torch.device("cpu")
 
     # Create Fake label and prediction
-    label = torch.zeros((1, 4, 4), dtype=torch.int, device=device)
-    pred = torch.zeros((1, 4, 4), dtype=torch.int, device=device)
+    label = torch.zeros((1, 4, 4), dtype=torch.float32, device=device)
+    pred = torch.zeros((1, 4, 4), dtype=torch.float32, device=device)
     label[:, :3, :3] = 1
     pred[:, -3:, -3:] = 1
     expected_iou = torch.tensor([2.0 / 12, 4.0 / 14], device=device)
