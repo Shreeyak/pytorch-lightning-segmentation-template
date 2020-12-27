@@ -122,7 +122,7 @@ class IouSync(metrics.Metric):
         assert prediction.shape == label.shape
         assert len(label.shape) == 3
 
-        num_images = label.shape[0]
+        num_images = int(label.shape[0])
 
         label = label.view(-1).int()
         prediction = prediction.view(-1).int()

@@ -19,11 +19,12 @@ class DeeplabV3plus(pl.LightningModule):
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        # self.iou_meter = {
-        #     "train": metrics.IouSync(num_classes=config.model.num_classes),
-        #     "val": metrics.IouSync(num_classes=config.model.num_classes),
-        #     "test": metrics.IouSync(num_classes=config.model.num_classes),
-        # }
+        self.iou_meter = {
+            "train": metrics.Iou(num_classes=config.model.num_classes),
+            # "val": metrics.Iou(num_classes=config.model.num_classes),
+            # "test": metrics.Iou(num_classes=config.model.num_classes),
+        }
+
         self.iou_train = metrics.IouSync(num_classes=config.model.num_classes)
         self.iou_val = metrics.IouSync(num_classes=config.model.num_classes)
         self.iou_test = metrics.IouSync(num_classes=config.model.num_classes)
@@ -56,6 +57,7 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Calculate Metrics
         self.iou_train(predictions, labels)
+        self.iou_meter["train"].accumulate(predictions, labels)
 
         return loss
 
@@ -90,6 +92,9 @@ class DeeplabV3plus(pl.LightningModule):
     def training_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_train.compute()
         self.log("Train/mIoU", metrics_avg.miou)
+
+        metrics_avg = self.iou_meter["train"].get_iou()
+        self.log("Train/mIoU_Normal", metrics_avg.miou)
 
     def validation_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_val.compute()
