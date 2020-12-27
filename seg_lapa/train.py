@@ -91,10 +91,12 @@ class DeeplabV3plus(pl.LightningModule):
     def validation_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_val.compute()
         self.log("Val/mIoU", metrics_avg.miou)
+        self.iou_val.reset()
 
     def test_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_test.compute()
         self.log("Test/mIoU", metrics_avg.miou)
+        self.iou_test.reset()
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
