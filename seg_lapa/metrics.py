@@ -14,7 +14,7 @@ class IouMetric:
     specificity: torch.Tensor
 
 
-class IouSync(metrics.Metric):
+class Iou(metrics.Metric):
     def __init__(self, num_classes: int = 11, normalize: bool = False):
         """Calculates the metrics iou, true positives and false positives/negatives for multi-class classification
         problems such as semantic segmentation.
@@ -128,7 +128,7 @@ def test_iou():
     expected_iou = torch.tensor([2.0 / 12, 4.0 / 14], device=device)
 
     print("Testing IoU metrics", end="")
-    iou_train = IouSync(num_classes=2)
+    iou_train = Iou(num_classes=2)
     iou_train.to(device)
     iou_train(pred, label)
     metrics_r = iou_train.compute()

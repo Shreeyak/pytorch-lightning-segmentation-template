@@ -20,9 +20,9 @@ class DeeplabV3plus(pl.LightningModule):
         self.config = config
         self.model = self.config.model.get_model()
 
-        self.iou_train = metrics.IouSync(num_classes=config.model.num_classes)
-        self.iou_val = metrics.IouSync(num_classes=config.model.num_classes)
-        self.iou_test = metrics.IouSync(num_classes=config.model.num_classes)
+        self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
+        self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
+        self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
