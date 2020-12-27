@@ -9,10 +9,10 @@ from pytorch_lightning import metrics
 class IouMetric:
     iou_per_class: torch.Tensor
     miou: torch.Tensor  # Mean IoU across all classes
-    tp: torch.Tensor  # True Positive
-    fp: torch.Tensor  # False Positive
-    fn: torch.Tensor  # False Negative
-    total_px: torch.Tensor = 0
+    accuracy: torch.Tensor
+    precision: torch.Tensor
+    recall: torch.Tensor
+    specificity: torch.Tensor
 
 
 class Iou:
@@ -68,13 +68,7 @@ class Iou:
     def get_iou(self) -> IouMetric:
         """Calculate the IoU based on accumulated confusion matrix"""
         if self.acc_confusion_matrix is None:
-            return IouMetric(
-                iou_per_class=np.array([0] * self.num_classes),
-                tp=torch.Tensor(0),
-                fn=torch.Tensor(0),
-                fp=torch.Tensor(0),
-                total_px=torch.Tensor(0),
-            )
+            return None
 
         conf_mat = self.acc_confusion_matrix
 
@@ -87,33 +81,37 @@ class Iou:
         iou_per_class = (tp + eps) / (fn + fp + tp + eps)  # Use epsilon to avoid zero division errors
         mean_iou = iou_per_class.mean()
 
-        data_r = IouMetric(iou_per_class=iou_per_class, miou=mean_iou, tp=tp, fn=fn, fp=fp, total_px=total_px)
+        data_r = IouMetric(
+            iou_per_class=iou_per_class,
+            miou=mean_iou,
+            accuracy=torch.tensor(-1),
+            precision=torch.tensor(-1),
+            recall=torch.tensor(-1),
+            specificity=torch.tensor(-1),
+        )
 
         return data_r
 
 
 class IouSync(metrics.Metric):
-    def __init__(self, num_classes=11, get_avg_per_image=True):
+    def __init__(self, num_classes: int = 11, normalize: bool = False):
         """Calculates the metrics iou, true positives and false positives/negatives for multi-class classification
         problems such as semantic segmentation.
         Because this is an expensive operation, we do not compute or sync the values per step
 
         Note:
-        This metric produces a multi-dimensional output, so it can not be directly logged.
+        This metric produces a dataclass as output, so it can not be directly logged.
 
         Forward accepts
 
         - ``preds`` (float or long tensor): ``(N, H, W)``
-        - ``target`` (long tensor): ``(N, ...)``)``
+        - ``target`` (long tensor): ``(N, H, W)``)``
         """
         super().__init__(compute_on_step=False, dist_sync_on_step=False)
 
         self.num_classes = num_classes
         # Metric normally calculated on batch. If true, final metrics (tp, fn, etc) will reflect average values per image
-        self.get_avg_per_image = get_avg_per_image
-
-        # The number of pixels in a set of images can be very large. Divide conf matrix by a factor to reduce max value.
-        self.normalize_factor = 10000.0
+        self.normalize = normalize
 
         self.acc_confusion_matrix = None  # The accumulated confusion matrix
         self.count_samples = None  # Number of samples seen
@@ -134,24 +132,19 @@ class IouSync(metrics.Metric):
 
         num_images = int(label.shape[0])
 
-        label = label.view(-1).long()  # .int()
-        prediction = prediction.view(-1).long()  # .int()
+        label = label.view(-1).long()
+        prediction = prediction.view(-1).long()
 
-        # Note: DO NOT pass in argument "minlength". It cause huge slowdowns on GPU.
-        # (~100x, tested with Pytorch 1.6.0, when both inputs were cast to .long() datatype)
-        conf_mat = torch.bincount(self.num_classes * label + prediction)
-
-        # Length of bincount depends on max value of inputs. Pad confusion matrix with zeros to get correct size.
-        size_conf_mat = self.num_classes * self.num_classes
-        if len(conf_mat) < size_conf_mat:
-            req_padding = torch.zeros(size_conf_mat - len(conf_mat), device=prediction.device)
-            conf_mat = torch.cat((conf_mat, req_padding))
-
+        # Calculate confusion matrix
+        conf_mat = torch.bincount(self.num_classes * label + prediction, minlength=self.num_classes ** 2)
         conf_mat = conf_mat.reshape((self.num_classes, self.num_classes))
-        # conf_mat = conf_mat.float() / self.normalize_factor
 
         self.acc_confusion_matrix += conf_mat
         self.count_samples += num_images
+
+    def _normalize_conf_mat(self):
+        if self.normalize:
+            self.acc_confusion_matrix = self.acc_confusion_matrix / self.count_samples  # Get average per image
 
     def compute(self):
         """Compute the final IoU and other metrics across all samples seen"""
@@ -165,22 +158,44 @@ class IouSync(metrics.Metric):
         This final norm conf matrix can be float32
         """
         # Average and de-normalize the accumulated confusion matrix
+        self._normalize_conf_mat()
         conf_mat = self.acc_confusion_matrix
-        # conf_mat *= self.normalize_factor
 
-        # if self.get_avg_per_image:
-        #     conf_mat = conf_mat / self.count_samples  # Get average per image
+        if self.normalize:
+            conf_mat = conf_mat / self.count_samples  # Get average per image
 
+        # Calculate True Positive (TP), False Positive (FP), False Negative (FN) and True Negative (TN)
         tp = conf_mat.diagonal()
         fn = conf_mat.sum(dim=0) - tp
         fp = conf_mat.sum(dim=1) - tp
         total_px = conf_mat.sum()
+        tn = total_px - (tp + fn + fp)
 
+        # Calculate Intersection over Union (IoU)
         eps = 1e-6
         iou_per_class = (tp + eps) / (fn + fp + tp + eps)  # Use epsilon to avoid zero division errors
         mean_iou = iou_per_class.mean()
 
-        data_r = IouMetric(iou_per_class=iou_per_class, miou=mean_iou, tp=tp, fn=fn, fp=fp, total_px=total_px)
+        # Overall accuracy
+        accuracy = (tp + tn) / (tp + fp + fn + tn)
+
+        # Precision (what proportion of predicted Positives is truly Positive?)
+        precision = tp / (tp + fp)
+
+        # Recall or True Positive Rate (what proportion of actual Positives is correctly classified?)
+        recall = tp / (tp + fn)
+
+        # Specificity or true negative rate
+        specificity = tn / (tn + fp)
+
+        data_r = IouMetric(
+            iou_per_class=iou_per_class,
+            miou=mean_iou,
+            accuracy=accuracy,
+            precision=precision,
+            recall=recall,
+            specificity=specificity,
+        )
 
         return data_r
 
