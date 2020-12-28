@@ -1,11 +1,16 @@
-import pytorch_lightning as pl
+import os
+from typing import List, Any
+
 import hydra
+import pytorch_lightning as pl
+import torch
+import wandb
 from omegaconf import OmegaConf, DictConfig
 
-from seg_lapa.loss_func import CrossEntropy2D
-from seg_lapa.config_parse.train_conf import TrainConf
-from seg_lapa.config_parse import train_conf
 from seg_lapa import metrics
+from seg_lapa.config_parse import train_conf
+from seg_lapa.config_parse.train_conf import TrainConf
+from seg_lapa.loss_func import CrossEntropy2D
 
 
 class DeeplabV3plus(pl.LightningModule):
@@ -14,48 +19,84 @@ class DeeplabV3plus(pl.LightningModule):
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        self.iou_meter = metrics.IouMetric(num_classes=config.model.num_classes)
+
+        self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
+        self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
+        self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
 
     def forward(self, x):
-        # in lightning, forward defines the prediction/inference actions
+        """In lightning, forward defines the prediction/inference actions.
+        This method can be called elsewhere in the LightningModule with: `outputs = self(inputs)`.
+        """
         outputs = self.model(x)
         return outputs
 
     def training_step(self, batch, batch_idx):
-        # training_step defines the train loop. It is independent of forward
-        # don’t use any cuda or .to(device) calls in code
+        """Defines the train loop. It is independent of forward().
+        Don’t use any cuda or .to(device) calls in the code. PL will move the tensors to the correct device.
+        """
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
 
-        # to aggregate epoch metrics use self.log or a metric. self.log logs metrics for each training_step.
-        # It also logs the average across the epoch, to the progress bar and logger
-        # "train_loss" is a reserved keyword
-        self.log("loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        """Log the value on GPU0 per step. Also log average of all steps at epoch_end."""
+        # self.log("Train/loss", loss, on_step=True, on_epoch=True)
+        """Log the avg. value across all GPUs per step. Also log average of all steps at epoch_end.
+        Alternately, you can use the ops 'sum' or 'avg'.
+        Using sync_dist is efficient. It adds extremely minor overhead for scalar values.
+        """
+        self.log("Train/loss", loss, on_step=True, on_epoch=True, sync_dist=True, sync_dist_op="avg")
+
+        # Calculate Metrics
+        self.iou_train(predictions, labels)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
+        self.log("Val/loss", loss, sync_dist=True, sync_dist_op="avg")
 
-        self.log("val_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        # Calculate Metrics
+        self.iou_val(predictions, labels)
 
-        return {
-            "val_loss": loss,
-        }
+        return {"val_loss": loss}
 
     def test_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
+        self.log("Test/loss", loss, sync_dist=True, sync_dist_op="avg")
 
-        self.log("test_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        # Calculate Metrics
+        self.iou_test(predictions, labels)
 
-        return {
-            "test_loss": loss,
-        }
+        return {"test_loss": loss}
+
+    def training_epoch_end(self, outputs: List[Any]):
+        metrics_avg = self.iou_train.compute()
+        self.log("Train/mIoU", metrics_avg.miou)
+        self.iou_train.reset()
+
+    def validation_epoch_end(self, outputs: List[Any]):
+        metrics_avg = self.iou_val.compute()
+        self.log("Val/mIoU", metrics_avg.miou)
+        self.iou_val.reset()
+
+    def test_epoch_end(self, outputs: List[Any]):
+        metrics_avg = self.iou_test.compute()
+        self.log("Test/mIoU", metrics_avg.miou)
+        self.iou_test.reset()
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
@@ -64,20 +105,26 @@ class DeeplabV3plus(pl.LightningModule):
 
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
-    print(OmegaConf.to_yaml(OmegaConf.to_container(cfg)))
-    print(cfg)
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    if local_rank == 0:
+        print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
 
     config = train_conf.parse_config(cfg)
+    if local_rank == 0:
+        print("\nResolved Dataclass:\n", config, "\n")
 
+    wb_logger = config.logger.get_logger(cfg)
+    trainer = config.trainer.get_trainer(wb_logger)
     model = DeeplabV3plus(config)
-
-    trainer = config.trainer.get_trainer()
     dm = config.dataset.get_datamodule()
 
+    # Run Training
     trainer.fit(model, datamodule=dm)
 
-    result = trainer.test()
-    print(result)
+    # Run Testing
+    result = trainer.test(ckpt_path=None)  # Prints the final result
+
+    wandb.finish()
 
 
 if __name__ == "__main__":

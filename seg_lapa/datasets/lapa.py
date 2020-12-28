@@ -10,7 +10,7 @@ import torch
 import torchvision
 from torch.utils.data import Dataset, DataLoader
 
-from seg_lapa.utils.path_check import get_path
+from seg_lapa.utils.path_check import get_path, PathType
 
 
 class DatasetSplit(enum.Enum):
@@ -104,7 +104,7 @@ class LapaDataset(Dataset):
 
     @staticmethod
     def _check_dir(dir_path: Union[str, Path]) -> Path:
-        return get_path(dir_path, path_type="dir", must_exist=True)
+        return get_path(dir_path, must_exist=True, path_type=PathType.DIR)
 
     @staticmethod
     def _read_label(label_path: Path) -> np.ndarray:
@@ -169,7 +169,7 @@ class LaPaDataModule(pl.LightningDataModule):
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.data_dir = get_path(data_dir, path_type="dir", must_exist=True)
+        self.data_dir = get_path(data_dir, must_exist=True, path_type=PathType.DIR)
         self.resize_h = resize_h
         self.resize_w = resize_w
 
@@ -180,7 +180,7 @@ class LaPaDataModule(pl.LightningDataModule):
     def prepare_data(self):
         """download dataset, tokenize, etc"""
         """
-        Downloading original data from author's google drive link: 
+        Downloading original data from author's google drive link:
             >>> import gdown
             >>> url = "https://drive.google.com/uc?export=download&id=1EtyCtiQZt2Y5qrb-0YxRxaVLpVcgCOQV"
             >>> output = "lapa-downloaded.tar.gz"
