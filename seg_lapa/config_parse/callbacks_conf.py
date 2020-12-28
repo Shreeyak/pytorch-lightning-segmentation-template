@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Optional
+
 
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
@@ -45,8 +46,14 @@ class EarlyStopConf:
 class CheckpointConf:
     """Dataclass just to initialize and return the Checkpoint Callback"""
 
+    monitor: Optional[str]
+    mode: str
+    save_last: Optional[bool]
+    period: int
+
     def get_callback(self, logs_dir):
-        checkpoint_callback = ModelCheckpoint(dirpath=logs_dir)
+        args_dict = asdict_filtered(self)
+        checkpoint_callback = ModelCheckpoint(dirpath=logs_dir, **args_dict)
         return checkpoint_callback
 
 
@@ -55,10 +62,11 @@ class StandardCallbacksConf(CallbacksConf):
     """Get a dictionary of all the callbacks."""
 
     early_stopping: Dict
+    checkpoints: Dict
 
     def get_callbacks_dict(self, logs_dir) -> Dict:
         early_stop = EarlyStopConf(**self.early_stopping).get_callback()
-        checkpoint = CheckpointConf().get_callback(logs_dir)
+        checkpoint = CheckpointConf(**self.checkpoints).get_callback(logs_dir)
         return {"early_stopping": early_stop, "checkpoint": checkpoint}
 
 

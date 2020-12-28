@@ -32,7 +32,6 @@ class WandbConf(LoggerConf):
     entity: str
     project: str
     run_name: Optional[str]
-    run_id: Optional[str]
     save_dir: Optional[str]
 
     def get_logger(self, cfg: DictConfig, run_id: str, save_dir: str) -> pl_loggers.WandbLogger:
@@ -57,7 +56,6 @@ class WandbConf(LoggerConf):
         if args_dict["save_dir"] is None:
             args_dict["save_dir"] = save_dir
         run_name = args_dict.pop("run_name")
-        run_id = args_dict.pop("run_id")
 
         cfg_dict = OmegaConf.to_container(cfg, resolve=True)
 
