@@ -23,10 +23,13 @@ class TrainerConfig(TrainerConf):
     gpus: int
     accelerator: Optional[str]
     precision: int
-    fast_dev_run: Union[int, bool]
     max_epochs: int
     resume_from_checkpoint: Optional[str]
     log_every_n_steps: int
+
+    benchmark: bool = False
+    deterministic: bool = False
+    fast_dev_run: Union[int, bool] = False
     overfit_batches: Union[int, float] = 0.0
     limit_train_batches: Union[int, float] = 1.0
     limit_val_batches: Union[int, float] = 1.0
