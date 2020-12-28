@@ -19,7 +19,10 @@ class DeeplabV3plus(pl.LightningModule):
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        self.iou_meter = metrics.IouMetric(num_classes=config.model.num_classes)
+
+        self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
+        self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
+        self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -34,43 +37,66 @@ class DeeplabV3plus(pl.LightningModule):
         """
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
 
-        """Log the value on GPU0 per step. Then average all steps at epoch_end."""
+        """Log the value on GPU0 per step. Also log average of all steps at epoch_end."""
         # self.log("Train/loss", loss, on_step=True, on_epoch=True)
-
-        """Log the avg. value across all GPUs per step. Also average all steps at epoch_end.
-        Alternately, you can use the ops 'sum', 'avg' and 'mean'.
+        """Log the avg. value across all GPUs per step. Also log average of all steps at epoch_end.
+        Alternately, you can use the ops 'sum' or 'avg'.
         Using sync_dist is efficient. It adds extremely minor overhead for scalar values.
         """
         self.log("Train/loss", loss, on_step=True, on_epoch=True, sync_dist=True, sync_dist_op="avg")
+
+        # Calculate Metrics
+        self.iou_train(predictions, labels)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
         self.log("Val/loss", loss, sync_dist=True, sync_dist_op="avg")
+
+        # Calculate Metrics
+        self.iou_val(predictions, labels)
 
         return {"val_loss": loss}
 
     def test_step(self, batch, batch_idx):
         inputs, labels = batch
         outputs = self.model(inputs)
+        predictions = outputs.argmax(dim=1)
+
+        # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
         self.log("Test/loss", loss, sync_dist=True, sync_dist_op="avg")
+
+        # Calculate Metrics
+        self.iou_test(predictions, labels)
 
         return {"test_loss": loss}
 
     def training_epoch_end(self, outputs: List[Any]):
-        pass
+        metrics_avg = self.iou_train.compute()
+        self.log("Train/mIoU", metrics_avg.miou)
+        self.iou_train.reset()
 
     def validation_epoch_end(self, outputs: List[Any]):
-        pass
+        metrics_avg = self.iou_val.compute()
+        self.log("Val/mIoU", metrics_avg.miou)
+        self.iou_val.reset()
 
     def test_epoch_end(self, outputs: List[Any]):
-        pass
+        metrics_avg = self.iou_test.compute()
+        self.log("Test/mIoU", metrics_avg.miou)
+        self.iou_test.reset()
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
@@ -79,20 +105,23 @@ class DeeplabV3plus(pl.LightningModule):
 
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
-    config = train_conf.parse_config(cfg)
-
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     if local_rank == 0:
         print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
+
+    config = train_conf.parse_config(cfg)
+    if local_rank == 0:
         print("\nResolved Dataclass:\n", config, "\n")
 
     wb_logger = config.logger.get_logger(cfg)
-
-    model = DeeplabV3plus(config)
-
     trainer = config.trainer.get_trainer(wb_logger)
+    model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
+
+    # Run Training
     trainer.fit(model, datamodule=dm)
+
+    # Run Testing
     result = trainer.test(ckpt_path=None)  # Prints the final result
 
     wandb.finish()

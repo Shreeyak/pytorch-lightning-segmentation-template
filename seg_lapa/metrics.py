@@ -1,97 +1,136 @@
-import numpy as np
+from dataclasses import dataclass
+
 import torch
+from pytorch_lightning import metrics
 
 
+@dataclass
 class IouMetric:
-    def __init__(self, num_classes: int):
-        """Calculate the Intersection over Union for multi-class segmentation
+    iou_per_class: torch.Tensor
+    miou: torch.Tensor  # Mean IoU across all classes
+    accuracy: torch.Tensor
+    precision: torch.Tensor
+    recall: torch.Tensor
+    specificity: torch.Tensor
 
-        This is a fast implementation of IoU that can run over the GPU
 
-        The IouMetric constructs a confusion matrix for every call (batch) and accumulates the results.
-        At the end of the epoch, metrics such as IoU can be extracted.
+class Iou(metrics.Metric):
+    def __init__(self, num_classes: int = 11, normalize: bool = False):
+        """Calculates the metrics iou, true positives and false positives/negatives for multi-class classification
+        problems such as semantic segmentation.
+        Because this is an expensive operation, we do not compute or sync the values per step.
+
+        Forward accepts:
+
+        - ``prediction`` (float or long tensor): ``(N, H, W)``
+        - ``label`` (long tensor): ``(N, H, W)``
+
+        Note:
+            This metric produces a dataclass as output, so it can not be directly logged.
         """
+        super().__init__(compute_on_step=False, dist_sync_on_step=False)
+
         self.num_classes = num_classes
-        self.conf_mat_flattened = None  # Avoid having to assign device by initializing as None
-        self.count = 0  # This isn't used as of now. Can be used to normalize the accumulated conf matrix
+        # Metric normally calculated on batch. If true, final metrics (tp, fn, etc) will reflect average values per image
+        self.normalize = normalize
 
-    def reset(self):
-        self.conf_mat_flattened = None
-        self.count = 0
+        self.acc_confusion_matrix = None  # The accumulated confusion matrix
+        self.count_samples = None  # Number of samples seen
+        # Use `add_state()` for attr to track their state and synchronize state across processes
+        self.add_state(
+            "acc_confusion_matrix", default=torch.zeros((self.num_classes, self.num_classes)), dist_reduce_fx="sum"
+        )
+        self.add_state("count_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def accumulate_confusion_matrix(self, prediction: torch.Tensor, label: torch.Tensor):
-        """Calculates and accumulates the confusion matrix for a batch"""
-        label = label.detach().view(-1).long()
-        prediction = prediction.detach().view(-1).long()
+    def update(self, prediction: torch.Tensor, label: torch.Tensor):
+        """Calculate the confusion matrix and accumulate it
 
-        # Note: DO NOT pass in argument "minlength". It cause huge slowdowns on GPU (~100x, tested with Pytorch 1.6.0)
-        conf_mat = torch.bincount(self.num_classes * label + prediction)
+        Args:
+            prediction: Predictions of network (after argmax). Shape: [N, H, W]
+            label: Ground truth. Each pixel has int value denoting class. Shape: [N, H, W]
+        """
+        assert prediction.shape == label.shape
+        assert len(label.shape) == 3
 
-        # Length of bincount depends on max value of inputs. Pad confusion matrix with zeros to get correct size.
-        size_conf_mat = self.num_classes * self.num_classes
-        if len(conf_mat) < size_conf_mat:
-            req_padding = torch.zeros(size_conf_mat - len(conf_mat), dtype=torch.long, device=prediction.device)
-            conf_mat = torch.cat((conf_mat, req_padding))
+        num_images = int(label.shape[0])
 
-        # Accumulate result
-        if self.conf_mat_flattened is None:
-            self.conf_mat_flattened = conf_mat
-        else:
-            self.conf_mat_flattened += conf_mat
-        self.count += 1
+        label = label.view(-1).long()
+        prediction = prediction.view(-1).long()
 
-    def get_confusion_matrix(self) -> np.ndarray:
-        """Extract the accumulated confusion matrix"""
-        conf_mat = self.conf_mat_flattened.reshape((self.num_classes, self.num_classes))
-        return conf_mat.cpu().numpy()
+        # Calculate confusion matrix
+        conf_mat = torch.bincount(self.num_classes * label + prediction, minlength=self.num_classes ** 2)
+        conf_mat = conf_mat.reshape((self.num_classes, self.num_classes))
 
-    def get_iou(self) -> np.ndarray:
-        """Calculate the IoU based on accumulated confusion matrix"""
-        if self.conf_mat_flattened is None:
-            return np.array([0.0])
+        # Accumulate values
+        self.acc_confusion_matrix += conf_mat
+        self.count_samples += num_images
 
-        conf_mat = self.conf_mat_flattened.reshape((self.num_classes, self.num_classes))
+    def compute(self):
+        """Compute the final IoU and other metrics across all samples seen"""
+        # Normalize the accumulated confusion matrix, if needed
+        conf_mat = self.acc_confusion_matrix
+        if self.normalize:
+            conf_mat = conf_mat / self.count_samples  # Get average per image
 
-        tp = torch.diagonal(conf_mat)
-        fn = torch.sum(conf_mat, dim=0) - tp
-        fp = torch.sum(conf_mat, dim=1) - tp
-        total_px = torch.sum(conf_mat)
+        # Calculate True Positive (TP), False Positive (FP), False Negative (FN) and True Negative (TN)
+        tp = conf_mat.diagonal()
+        fn = conf_mat.sum(dim=0) - tp
+        fp = conf_mat.sum(dim=1) - tp
+        total_px = conf_mat.sum()
+        tn = total_px - (tp + fn + fp)
 
+        # Calculate Intersection over Union (IoU)
         eps = 1e-6
         iou_per_class = (tp + eps) / (fn + fp + tp + eps)  # Use epsilon to avoid zero division errors
+        mean_iou = iou_per_class.mean()
 
-        # Bring to CPU
-        iou_per_class = iou_per_class.cpu().numpy()
+        # Accuracy (what proportion of predictions — both Positive and Negative — were correctly classified?)
+        accuracy = (tp + tn) / (tp + fp + fn + tn)
 
-        # Compile into dict
-        data_r = {"iou_per_class": iou_per_class, "tp": tp, "fn": fn, "fp": fp, "total_px": total_px}
+        # Precision (what proportion of predicted Positives is truly Positive?)
+        precision = tp / (tp + fp)
+
+        # Recall or True Positive Rate (what proportion of actual Positives is correctly classified?)
+        recall = tp / (tp + fn)
+
+        # Specificity or true negative rate
+        specificity = tn / (tn + fp)
+
+        data_r = IouMetric(
+            iou_per_class=iou_per_class,
+            miou=mean_iou,
+            accuracy=accuracy,
+            precision=precision,
+            recall=recall,
+            specificity=specificity,
+        )
 
         return data_r
 
 
 # Tests
 def test_iou():
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
     # Create Fake label and prediction
-    label = torch.zeros((1, 4, 4), device=device)
-    pred = torch.zeros((1, 4, 4), device=device)
+    label = torch.zeros((1, 4, 4), dtype=torch.float32, device=device)
+    pred = torch.zeros((1, 4, 4), dtype=torch.float32, device=device)
     label[:, :3, :3] = 1
     pred[:, -3:, -3:] = 1
-    expected_iou = [2.0 / 12, 4.0 / 14]
+    expected_iou = torch.tensor([2.0 / 12, 4.0 / 14], device=device)
 
-    iou_meter = IouMetric(num_classes=2)
-    iou_meter.accumulate_confusion_matrix(pred, label)
-    metrics_r = iou_meter.get_iou()
-    iou_per_class = metrics_r["iou_per_class"]
-
+    print("Testing IoU metrics", end="")
+    iou_train = Iou(num_classes=2)
+    iou_train.to(device)
+    iou_train(pred, label)
+    metrics_r = iou_train.compute()
+    iou_per_class = metrics_r.iou_per_class
     assert (iou_per_class - expected_iou).sum() < 1e-6
-    print("Testing IOU: passed")
+    print("  passed")
 
 
 if __name__ == "__main__":
     # Run tests
+    print("Running tests on metrics module...\n")
     test_iou()
