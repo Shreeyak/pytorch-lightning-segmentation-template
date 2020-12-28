@@ -1,5 +1,5 @@
 import os
-from typing import List, Any
+from typing import Any, List, Optional
 
 import hydra
 import pytorch_lightning as pl
@@ -11,6 +11,18 @@ from seg_lapa import metrics
 from seg_lapa.config_parse import train_conf
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.loss_func import CrossEntropy2D
+
+
+def fix_seeds(random_seed: Optional[int]) -> None:
+    """Fix seeds for reproducibility.
+    Ref:
+        https://pytorch.org/docs/stable/notes/randomness.html
+
+    Args:
+        random_seed: If None, seeds not set. If int, uses value to seed.
+    """
+    if random_seed is not None:
+        pl.seed_everything(random_seed)
 
 
 class DeeplabV3plus(pl.LightningModule):
@@ -113,7 +125,8 @@ def main(cfg: DictConfig):
     if local_rank == 0:
         print("\nResolved Dataclass:\n", config, "\n")
 
-    config.random_seed.fix_seeds()
+    fix_seeds(config.random_seed)
+
     wb_logger = config.logger.get_logger(cfg)
     trainer = config.trainer.get_trainer(wb_logger)
     model = DeeplabV3plus(config)

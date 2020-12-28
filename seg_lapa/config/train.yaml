@@ -1,4 +1,4 @@
-random_seed: 0
+random_seed: 0  # If None, seeds not set. If int, uses value to seed.
 
 defaults:
   - dataset: lapa
