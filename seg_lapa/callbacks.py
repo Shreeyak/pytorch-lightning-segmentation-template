@@ -1,3 +1,4 @@
+import pytorch_lightning as pl
 import numpy as np
 import wandb
 from pytorch_lightning.callbacks import early_stopping, Callback
@@ -83,6 +84,8 @@ class LogMedia(Callback):
         # Only works with wandb logger
         if trainer.logger is None:
             return
+        if isinstance(trainer.logger.experiment, pl.loggers.base.DummyExperiment):
+            return
         if not isinstance(trainer.logger.experiment, wandb.sdk.wandb_run.Run):
             if not self.flag_warn_once:
                 # Given warning print only once. To prevent clutter.
@@ -94,22 +97,16 @@ class LogMedia(Callback):
 
         # Pick the last batch and logits
         inputs, labels = batch
-        print(f"inputs: {inputs.shape}, labels: {labels.shape}")
         predictions = outputs[0][0]["extra"]["preds"]
 
-        # Limit the num of samples
+        # Limit the num of samples and convert to numpy
         inputs = inputs[: self.max_images_to_log].cpu().numpy().transpose((0, 2, 3, 1))
-        labels = labels[: self.max_images_to_log].cpu().numpy()
-        predictions = predictions[: self.max_images_to_log].cpu().numpy()
-
-        # Colorize labels and predictions
-        # labels_rgb = self._colorize_batch_images(labels)
-        # predictions_rgb = self._colorize_batch_images(predictions)
+        labels = labels[: self.max_images_to_log].cpu().numpy().astype(np.uint8)
+        predictions = predictions[: self.max_images_to_log].cpu().numpy().astype(np.uint8)
 
         # Log to wandb
         mask_list = []
         for img, lbl, pred in zip(inputs, labels, predictions):
-            print(f"lbl: {lbl.shape}, preds: {pred.shape}")
             mask_img = wandb.Image(
                 img,
                 masks={
@@ -119,9 +116,4 @@ class LogMedia(Callback):
             )
             mask_list.append(mask_img)
 
-        trainer.logger.experiment.log({"Train/Predictions": mask_list})
-
-    def _colorize_batch_images(self, batch_label: np.ndarray):
-        batch_label_rgb = [self.label2rgb.map_color_palette(label, Palette.LAPA) for label in batch_label]
-        batch_label_rgb = np.stack(batch_label_rgb, axis=0)
-        return batch_label_rgb
+        trainer.logger.experiment.log({"Train/Predictions": mask_list}, commit=False)
