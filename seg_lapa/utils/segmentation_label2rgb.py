@@ -69,6 +69,26 @@ class LabelToRGB:
 
         return im
 
+    def colorize_batch_numpy(self, batch_label: np.ndarray) -> np.ndarray:
+        """Convert a batch of numpy labels to RGB
+
+        Args:
+            batch_label (numpy.ndarray): Shape: [N, H, W], dtype=np.uint8
+
+        Returns:
+            numpy.ndarray: Colorize labels. Shape: [N, H, W, 3], dtype=np.uint8
+        """
+        if not isinstance(batch_label, np.ndarray):
+            raise TypeError(f"`batch_label` expected to be Numpy array. Got: {type(batch_label)}")
+        if len(batch_label.shape) != 3:
+            raise ValueError(f"`batch_label` expected shape [N, H, W]. Got: {batch_label.shape}")
+        if batch_label.dtype != np.uint8:
+            raise ValueError(f"`batch_label` must be of dtype np.uint8. Got: {batch_label.dtype}")
+
+        batch_label_rgb = [self.map_color_palette(label, Palette.LAPA) for label in batch_label]
+        batch_label_rgb = np.stack(batch_label_rgb, axis=0)
+        return batch_label_rgb
+
 
 if __name__ == "__main__":
     # Create dummy mask

@@ -115,6 +115,9 @@ class DeeplabV3plus(pl.LightningModule):
         self.log("Test/mIoU", metrics_avg.miou)
         self.iou_test.reset()
 
+        # Save inference results
+        # How to get inputs and labels?
+
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
         return optimizer

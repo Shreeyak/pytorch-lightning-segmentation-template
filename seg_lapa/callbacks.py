@@ -100,9 +100,9 @@ class LogMedia(Callback):
         predictions = outputs[0][0]["extra"]["preds"]
 
         # Limit the num of samples and convert to numpy
-        inputs = inputs[: self.max_images_to_log].cpu().numpy().transpose((0, 2, 3, 1))
-        labels = labels[: self.max_images_to_log].cpu().numpy().astype(np.uint8)
-        predictions = predictions[: self.max_images_to_log].cpu().numpy().astype(np.uint8)
+        inputs = inputs[: self.max_images_to_log].detach().cpu().numpy().transpose((0, 2, 3, 1))
+        labels = labels[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
+        predictions = predictions[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
 
         # Log to wandb
         mask_list = []
