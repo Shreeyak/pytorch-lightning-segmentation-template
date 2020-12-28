@@ -8,7 +8,7 @@ precision: 16
 limit_train_batches: 1.0
 limit_val_batches: 1.0
 limit_test_batches: 1.0
-fast_dev_run: True
+fast_dev_run: False
 max_epochs: 1
 resume_from_checkpoint: null
 log_every_n_steps: 1
