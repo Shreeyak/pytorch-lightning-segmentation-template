@@ -1,5 +1,0 @@
-# @package _group_
-name: checkpoint_callback
-
-dirpath: null #if null package's root directory is used
-

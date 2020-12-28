@@ -11,14 +11,16 @@ from seg_lapa import metrics
 from seg_lapa.config_parse import train_conf
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.loss_func import CrossEntropy2D
+from seg_lapa.utils.path_check import get_project_root
 
 
 class DeeplabV3plus(pl.LightningModule):
-    def __init__(self, config: TrainConf):
+    def __init__(self, config: TrainConf, run_id: str):
         super().__init__()
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
+        self.logs_dir = get_project_root() / 'logs' / run_id
 
         self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
@@ -114,11 +116,9 @@ def main(cfg: DictConfig):
         print("\nResolved Dataclass:\n", config, "\n")
 
     wb_logger = config.logger.get_logger(cfg)
-    checkpoint_callback = config.checkpoint_callback.get_checkpoint_callback(cfg, wb_logger.experiment.id)
-    # trainer = config.trainer.get_trainer(wb_logger, checkpoint_callback)
-    callbacks = config.callbacks.get_callbacks_list()
+    model = DeeplabV3plus(config, wb_logger.experiment.id)
+    callbacks = config.callbacks.get_callbacks_list(model.logs_dir)
     trainer = config.trainer.get_trainer(wb_logger, callbacks)
-    model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
 
     # Run Training
