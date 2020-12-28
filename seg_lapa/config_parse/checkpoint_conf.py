@@ -7,23 +7,26 @@ from pydantic.dataclasses import dataclass
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
+from seg_lapa.utils.path_check import get_project_root
 
 
-@dataclass(frozen=True)
+@dataclass
 class CheckpointConf(ABC):
     name: str
 
     @abstractmethod
-    def get_checkpoint_callback(self) -> pl.callbacks:
+    def get_checkpoint_callback(self, *args) -> pl.callbacks:
         pass
 
 
-@dataclass(frozen=True)
+@dataclass
 class CheckpointConfig(CheckpointConf):
-    dir_path: Optional[str]
-    filename: Optional[str]
+    dirpath: Optional[str]
 
-    def get_checkpoint_callback(self) -> pl.callbacks:
+    def get_checkpoint_callback(self, cfg: DictConfig, run_id) -> pl.callbacks:
+        if self.dirpath is None:
+            self.dirpath = str(get_project_root())+'/logs/'+run_id
+
         checkpoint_callback = ModelCheckpoint(**asdict_filtered(self))
         return checkpoint_callback
 

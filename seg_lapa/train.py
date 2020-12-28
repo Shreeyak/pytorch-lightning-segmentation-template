@@ -114,7 +114,8 @@ def main(cfg: DictConfig):
         print("\nResolved Dataclass:\n", config, "\n")
 
     wb_logger = config.logger.get_logger(cfg)
-    trainer = config.trainer.get_trainer(wb_logger)
+    checkpoint_callback = config.checkpoint_callback.get_checkpoint_callback(cfg, wb_logger.experiment.id)
+    trainer = config.trainer.get_trainer(wb_logger, checkpoint_callback)
     model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
 

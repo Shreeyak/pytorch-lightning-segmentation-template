@@ -14,7 +14,7 @@ class TrainerConf(ABC):
     name: str
 
     @abstractmethod
-    def get_trainer(self, pl_logger: LightningLoggerBase) -> pl.Trainer:
+    def get_trainer(self, pl_logger: LightningLoggerBase, checkpoint_callback: pl.callbacks) -> pl.Trainer:
         pass
 
 
@@ -32,8 +32,8 @@ class TrainerConfig(TrainerConf):
     resume_from_checkpoint: Optional[str]
     log_every_n_steps: int
 
-    def get_trainer(self, pl_logger) -> pl.Trainer:
-        trainer = pl.Trainer(logger=pl_logger, **asdict_filtered(self))
+    def get_trainer(self, pl_logger, checkpoint_callback) -> pl.Trainer:
+        trainer = pl.Trainer(logger=pl_logger, callbacks=[checkpoint_callback], **asdict_filtered(self))
         return trainer
 
 
