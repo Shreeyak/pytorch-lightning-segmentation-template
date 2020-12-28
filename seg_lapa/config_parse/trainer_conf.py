@@ -22,16 +22,19 @@ class TrainerConf(ABC):
 @dataclass(frozen=True)
 class TrainerConfig(TrainerConf):
     gpus: int
-    overfit_batches: Union[float, int]
-    distributed_backend: Optional[str]
+    accelerator: Optional[str]
     precision: int
-    limit_train_batches: Union[float, int]
-    limit_val_batches: Union[float, int]
-    limit_test_batches: Union[float, int]
-    fast_dev_run: Union[int, bool]
     max_epochs: int
     resume_from_checkpoint: Optional[str]
     log_every_n_steps: int
+
+    benchmark: bool = False
+    deterministic: bool = False
+    fast_dev_run: Union[int, bool] = False
+    overfit_batches: Union[int, float] = 0.0
+    limit_train_batches: Union[int, float] = 1.0
+    limit_val_batches: Union[int, float] = 1.0
+    limit_test_batches: Union[int, float] = 1.0
 
     def get_trainer(self, pl_logger: LightningLoggerBase, callbacks: List[Callback]) -> pl.Trainer:
         trainer = pl.Trainer(logger=pl_logger, callbacks=callbacks, **asdict_filtered(self))
