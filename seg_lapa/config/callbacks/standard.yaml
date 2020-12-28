@@ -1,0 +1,5 @@
+# @package _group_
+name: standard
+early_stopping:
+  min_delta: 0.0005
+  patience: 10
