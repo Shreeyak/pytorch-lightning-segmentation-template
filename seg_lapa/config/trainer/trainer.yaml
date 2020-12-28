@@ -2,13 +2,13 @@
 name: trainer
 
 gpus: 1  # Denotes the number of gpus to use. Set CUDA_VISIBLE_DEVICES env var to control which gpus are used.
-overfit_batches: 0.0
-distributed_backend: "ddp"
+accelerator: "ddp"
 precision: 16
-limit_train_batches: 1.0
-limit_val_batches: 1.0
-limit_test_batches: 1.0
 fast_dev_run: False
 max_epochs: 1
 resume_from_checkpoint: null
 log_every_n_steps: 1
+overfit_batches: 0.0
+limit_train_batches: 1.0
+limit_val_batches: 1.0
+limit_test_batches: 1.0
