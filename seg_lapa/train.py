@@ -113,6 +113,7 @@ def main(cfg: DictConfig):
     if local_rank == 0:
         print("\nResolved Dataclass:\n", config, "\n")
 
+    config.random_seed.fix_seeds()
     wb_logger = config.logger.get_logger(cfg)
     trainer = config.trainer.get_trainer(wb_logger)
     model = DeeplabV3plus(config)
