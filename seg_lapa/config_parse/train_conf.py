@@ -1,3 +1,5 @@
+from typing import Optional
+
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
@@ -21,6 +23,7 @@ from seg_lapa.config_parse import (
 
 @dataclass(frozen=True)
 class TrainConf:
+    random_seed: Optional[int]
     dataset: DatasetConf
     optimizer: OptimConf
     model: ModelConf
@@ -33,6 +36,7 @@ class TrainConf:
 def parse_config(cfg: DictConfig) -> TrainConf:
     """Parses the config file read from hydra to populate the TrainConfig dataclass"""
     config = TrainConf(
+        random_seed=cfg.random_seed,
         dataset=dataset_conf.validate_config_group(cfg.dataset),
         model=model_conf.validate_config_group(cfg.model),
         optimizer=optimizer_conf.validate_config_group(cfg.optimizer),

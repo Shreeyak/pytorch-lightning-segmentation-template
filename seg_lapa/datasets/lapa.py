@@ -1,6 +1,7 @@
 import cv2
 import enum
 import numpy as np
+import random
 from pathlib import Path
 from typing import Optional, Union, Tuple, List
 
@@ -234,3 +235,9 @@ class LaPaDataModule(pl.LightningDataModule):
             ]
         )
         return augs_train
+
+    def _dataloader_worker_init(_: int):
+        """Seeds the workers within the Dataloader"""
+        worker_seed = torch.initial_seed() % 2 ** 32
+        np.random.seed(worker_seed)
+        random.seed(worker_seed)

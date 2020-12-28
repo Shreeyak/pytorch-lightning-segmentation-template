@@ -1,5 +1,5 @@
 import os
-from typing import List, Any
+from typing import Any, List, Optional
 
 import hydra
 import pytorch_lightning as pl
@@ -14,7 +14,19 @@ from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.utils.path_check import get_project_root
 
 
-LOGS_DIR = 'logs'
+LOGS_DIR = "logs"
+
+
+def fix_seeds(random_seed: Optional[int]) -> None:
+    """Fix seeds for reproducibility.
+    Ref:
+        https://pytorch.org/docs/stable/notes/randomness.html
+
+    Args:
+        random_seed: If None, seeds not set. If int, uses value to seed.
+    """
+    if random_seed is not None:
+        pl.seed_everything(random_seed)
 
 
 class DeeplabV3plus(pl.LightningModule):
@@ -123,7 +135,6 @@ def create_log_dir(cfg):
     return log_dir, run_id
 
 
-
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
@@ -134,7 +145,9 @@ def main(cfg: DictConfig):
     if local_rank == 0:
         print("\nResolved Dataclass:\n", config, "\n")
 
+    fix_seeds(config.random_seed)
     log_dir, run_id = create_log_dir(cfg)
+
     wb_logger = config.logger.get_logger(cfg, run_id, get_project_root())
     model = DeeplabV3plus(config, log_dir)
     callbacks = config.callbacks.get_callbacks_list(log_dir)
