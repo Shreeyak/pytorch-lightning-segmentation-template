@@ -23,7 +23,8 @@ def asdict_filtered(obj, remove_keys: Optional[Sequence[str]] = None) -> Dict:
     # Clean the arguments
     args = dataclasses.asdict(obj)
     for key in remove_keys:
-        args.pop(key)
+        if key in args:
+            args.pop(key)
 
     return args
 

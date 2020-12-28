@@ -14,7 +14,12 @@ class CallbacksConf(ABC):
 
     @abstractmethod
     def get_callbacks_dict(self):
-        pass
+        return {}
+
+    def get_callbacks_list(self):
+        callback_dict = self.get_callbacks_dict()
+        callback_list = list(callback_dict.values())
+        return callback_list
 
 
 @dataclass(frozen=True)
@@ -42,8 +47,8 @@ class StandardCallbacksConf(CallbacksConf):
     early_stopping: Dict
 
     def get_callbacks_dict(self) -> Dict:
-        early_stop = EarlyStopConf(**self.early_stopping)
-        return {"early_stopping": early_stop.get_callback()}
+        early_stop = EarlyStopConf(**self.early_stopping).get_callback()
+        return {"early_stopping": early_stop}
 
 
 valid_names = {
