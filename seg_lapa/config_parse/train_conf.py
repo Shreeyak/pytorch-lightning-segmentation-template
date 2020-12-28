@@ -7,7 +7,16 @@ from seg_lapa.config_parse.trainer_conf import TrainerConf
 from seg_lapa.config_parse.model_conf import ModelConf
 from seg_lapa.config_parse.scheduler_conf import SchedulerConf
 from seg_lapa.config_parse.logger_conf import LoggerConf
-from seg_lapa.config_parse import dataset_conf, optimizer_conf, trainer_conf, model_conf, scheduler_conf, logger_conf
+from seg_lapa.config_parse.callbacks_conf import CallbacksConf
+from seg_lapa.config_parse import (
+    dataset_conf,
+    optimizer_conf,
+    trainer_conf,
+    model_conf,
+    scheduler_conf,
+    logger_conf,
+    callbacks_conf,
+)
 
 
 @dataclass(frozen=True)
@@ -18,6 +27,7 @@ class TrainConf:
     trainer: TrainerConf
     scheduler: SchedulerConf
     logger: LoggerConf
+    callbacks: CallbacksConf
 
 
 def parse_config(cfg: DictConfig) -> TrainConf:
@@ -29,6 +39,7 @@ def parse_config(cfg: DictConfig) -> TrainConf:
         trainer=trainer_conf.validate_config_group(cfg.trainer),
         scheduler=scheduler_conf.validate_config_group(cfg.scheduler),
         logger=logger_conf.validate_config_group(cfg.logger),
+        callbacks=callbacks_conf.validate_config_group(cfg.callbacks),
     )
 
     return config

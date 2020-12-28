@@ -16,14 +16,18 @@ class EarlyStopping(early_stopping.EarlyStopping):
                   once without early stopping and see how long it takes to converge on a given dataset.
                   Choose the number of epochs between when you feel it's started to converge and after you're
                   sure the model has converged. Reduce the patience if you see the model continues to train for too long.
-
+        verbose: Minimal extra info logs about earlystopping starting
+        mode: Choose between "max" and "min". If the performance is considered better when metric is higher, choose
+              "max", else "min".
+        strict: Whether to crash the training if monitor is not found in the validation metrics. This should always be
+                True. If early stopping is not desired, disable it.
     """
 
     def __init__(
         self,
         monitor="Val/mIoU",
         min_delta=0.0005,
-        patience=3,
+        patience=10,
         verbose=True,
         mode="max",
         strict=True,

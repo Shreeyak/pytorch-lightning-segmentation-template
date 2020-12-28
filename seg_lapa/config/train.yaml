@@ -5,6 +5,7 @@ defaults:
   - trainer: trainer
   - scheduler: disabled
   - logger: wandb
+  - callbacks: standard
 
   # To disable any .log files
   - hydra/job_logging: disabled
