@@ -1,16 +1,16 @@
-
 defaults:
-    - dataset: lapa
-    - model: deeplabv3
-    - optimizer: adam
-    - trainer: trainer
-    - scheduler: disabled
+  - dataset: lapa
+  - model: deeplabv3
+  - optimizer: adam
+  - trainer: trainer
+  - scheduler: disabled
+  - logger: wandb
 
-    # To disable any .log files
-    - hydra/job_logging: disabled
-    - hydra/hydra_logging: disabled
+  # To disable any .log files
+  - hydra/job_logging: disabled
+  - hydra/hydra_logging: disabled
 
 hydra:
-    output_subdir: null  # Disable saving of config files. We'll do that ourselves.
-    run:
-        dir: .  # Set working dir to current directory
+  output_subdir: null # Disable saving of config files. We'll do that ourselves.
+  run:
+    dir: . # Set working dir to current directory
