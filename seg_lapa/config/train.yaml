@@ -2,7 +2,7 @@ defaults:
   - dataset: lapa
   - model: deeplabv3
   - optimizer: adam
-  - trainer: trainer
+  - trainer: standard
   - scheduler: disabled
   - logger: wandb
 
