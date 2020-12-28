@@ -135,7 +135,7 @@ def main(cfg: DictConfig):
         print("\nResolved Dataclass:\n", config, "\n")
 
     log_dir, run_id = create_log_dir(cfg)
-    wb_logger = config.logger.get_logger(cfg, run_id, log_dir)
+    wb_logger = config.logger.get_logger(cfg, run_id, get_project_root())
     model = DeeplabV3plus(config, log_dir)
     callbacks = config.callbacks.get_callbacks_list(log_dir)
     trainer = config.trainer.get_trainer(wb_logger, callbacks)

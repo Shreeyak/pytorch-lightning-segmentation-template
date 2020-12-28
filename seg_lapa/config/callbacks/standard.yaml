@@ -4,7 +4,7 @@ early_stopping:
   min_delta: 0.0005
   patience: 10
 checkpoints:
-  monitor: 'val_loss'
+  monitor: 'Val/mIoU'
   mode: 'max'
   period: 1
   save_last: null
