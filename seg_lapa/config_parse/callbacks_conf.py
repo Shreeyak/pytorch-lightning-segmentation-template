@@ -8,6 +8,7 @@ from pydantic.dataclasses import dataclass
 from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 from seg_lapa.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
+from seg_lapa.callbacks import EarlyStopping, LogMedia
 
 
 @dataclass(frozen=True)
@@ -67,7 +68,8 @@ class StandardCallbacksConf(CallbacksConf):
     def get_callbacks_dict(self, logs_dir) -> Dict:
         early_stop = EarlyStopConf(**self.early_stopping).get_callback()
         checkpoint = CheckpointConf(**self.checkpoints).get_callback(logs_dir)
-        return {"early_stopping": early_stop, "checkpoint": checkpoint}
+        test_log_media = LogMedia()
+        return {"early_stopping": early_stop, "checkpoint": checkpoint, "log_media": test_log_media}
 
 
 valid_names = {

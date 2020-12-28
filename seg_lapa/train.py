@@ -70,7 +70,7 @@ class DeeplabV3plus(pl.LightningModule):
         # Calculate Metrics
         self.iou_train(predictions, labels)
 
-        return loss
+        return {"loss": loss, "preds": predictions}
 
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
@@ -84,7 +84,7 @@ class DeeplabV3plus(pl.LightningModule):
         # Calculate Metrics
         self.iou_val(predictions, labels)
 
-        return {"val_loss": loss}
+        return {"val_loss": loss, "preds": predictions}
 
     def test_step(self, batch, batch_idx):
         inputs, labels = batch
@@ -98,7 +98,7 @@ class DeeplabV3plus(pl.LightningModule):
         # Calculate Metrics
         self.iou_test(predictions, labels)
 
-        return {"test_loss": loss}
+        return {"test_loss": loss, "preds": predictions}
 
     def training_epoch_end(self, outputs: List[Any]):
         metrics_avg = self.iou_train.compute()
