@@ -35,7 +35,7 @@ class WandbConf(LoggerConf):
     run_id: Optional[str]
     save_dir: Optional[str]
 
-    def get_logger(self, cfg: DictConfig) -> pl_loggers.WandbLogger:
+    def get_logger(self, cfg: DictConfig, run_id: str, save_dir: str) -> pl_loggers.WandbLogger:
         """Returns the Weights and Biases (wandb) logger object (really an wandb Run object)
 
         The run object corresponds to a single execution of your script, typically this is an ML experiment.
@@ -54,6 +54,8 @@ class WandbConf(LoggerConf):
         # The argument names to wandb are different from the attribute names of the class.
         # Pop the offending attributes before passing to init func.
         args_dict = asdict_filtered(self)
+        if args_dict["save_dir"] is None:
+            args_dict["save_dir"] = save_dir
         run_name = args_dict.pop("run_name")
         run_id = args_dict.pop("run_id")
 

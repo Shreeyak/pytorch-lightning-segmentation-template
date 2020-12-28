@@ -17,8 +17,8 @@ class CallbacksConf(ABC):
     def get_callbacks_dict(self):
         return {}
 
-    def get_callbacks_list(self, log_dir):
-        callback_dict = self.get_callbacks_dict(log_dir)
+    def get_callbacks_list(self, *args):
+        callback_dict = self.get_callbacks_dict(*args)
         callback_list = list(callback_dict.values())
         return callback_list
 

@@ -14,13 +14,16 @@ from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.utils.path_check import get_project_root
 
 
+LOGS_DIR = 'logs'
+
+
 class DeeplabV3plus(pl.LightningModule):
-    def __init__(self, config: TrainConf, run_id: str):
+    def __init__(self, config: TrainConf, log_dir: str):
         super().__init__()
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        self.logs_dir = get_project_root() / 'logs' / run_id
+        self.log_dir = log_dir
 
         self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
@@ -105,6 +108,22 @@ class DeeplabV3plus(pl.LightningModule):
         return optimizer
 
 
+def create_log_dir(cfg):
+    # Set the run ID: Read from config if resuming training, else generate unique id
+    run_id = wandb.util.generate_id()
+
+    # Create log dir
+    log_root_dir = get_project_root() / LOGS_DIR
+    log_dir = log_root_dir / run_id
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save the input config file to logs dir
+    OmegaConf.save(cfg, log_dir / "train.yaml")
+
+    return log_dir, run_id
+
+
+
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
@@ -115,9 +134,10 @@ def main(cfg: DictConfig):
     if local_rank == 0:
         print("\nResolved Dataclass:\n", config, "\n")
 
-    wb_logger = config.logger.get_logger(cfg)
-    model = DeeplabV3plus(config, wb_logger.experiment.id)
-    callbacks = config.callbacks.get_callbacks_list(model.logs_dir)
+    log_dir, run_id = create_log_dir(cfg)
+    wb_logger = config.logger.get_logger(cfg, run_id, log_dir)
+    model = DeeplabV3plus(config, log_dir)
+    callbacks = config.callbacks.get_callbacks_list(log_dir)
     trainer = config.trainer.get_trainer(wb_logger, callbacks)
     dm = config.dataset.get_datamodule()
 
