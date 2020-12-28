@@ -115,7 +115,9 @@ def main(cfg: DictConfig):
 
     wb_logger = config.logger.get_logger(cfg)
     checkpoint_callback = config.checkpoint_callback.get_checkpoint_callback(cfg, wb_logger.experiment.id)
-    trainer = config.trainer.get_trainer(wb_logger, checkpoint_callback)
+    # trainer = config.trainer.get_trainer(wb_logger, checkpoint_callback)
+    callbacks = config.callbacks.get_callbacks_list()
+    trainer = config.trainer.get_trainer(wb_logger, callbacks)
     model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
 

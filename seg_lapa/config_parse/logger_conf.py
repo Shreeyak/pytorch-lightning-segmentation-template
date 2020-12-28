@@ -20,8 +20,6 @@ class LoggerConf(ABC):
 
 @dataclass(frozen=True)
 class DisabledLoggerConf(LoggerConf):
-    name: str
-
     @staticmethod
     def get_logger(*args):
         return False
@@ -71,7 +69,7 @@ valid_names = {
 }
 
 
-def validate_config_group(cfg_subgroup: DictConfig) -> WandbConf:
+def validate_config_group(cfg_subgroup: DictConfig) -> LoggerConf:
     validated_dataclass = validate_config_group_generic(
         cfg_subgroup, mapping_names_dataclass=valid_names, config_category="logger"
     )

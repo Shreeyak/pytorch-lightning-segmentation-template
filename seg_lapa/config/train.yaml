@@ -6,6 +6,7 @@ defaults:
   - scheduler: disabled
   - logger: wandb
   - checkpoint_callback: checkpoint_callback
+  - callbacks: standard
 
   # To disable any .log files
   - hydra/job_logging: disabled
