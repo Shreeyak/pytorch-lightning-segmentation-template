@@ -1,9 +1,15 @@
+from enum import Enum
+
 import pytorch_lightning as pl
 import numpy as np
 import wandb
 from pytorch_lightning.callbacks import early_stopping, Callback
 
-from seg_lapa.utils.segmentation_label2rgb import LabelToRGB, Palette
+
+class Mode(Enum):
+    TRAIN = "Train"
+    VAL = "Val"
+    TEST = "Test"
 
 
 class EarlyStopping(early_stopping.EarlyStopping):
@@ -60,7 +66,6 @@ class LogMedia(Callback):
         super().__init__()
         self.logging_batch_interval = logging_batch_interval
         self.max_images_to_log = max_images_to_log
-        self.label2rgb = LabelToRGB()
         self.class_labels_lapa = {
             0: "background",
             1: "skin",
@@ -77,15 +82,15 @@ class LogMedia(Callback):
         self.flag_warn_once = False
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._common_batch_end(trainer, outputs, batch, "Train/Predictions")
+        self._common_batch_end(trainer, outputs, batch, Mode.TRAIN)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._common_batch_end(trainer, outputs, batch, "Val/Predictions")
+        self._common_batch_end(trainer, outputs, batch, Mode.VAL)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._common_batch_end(trainer, outputs, batch, "Test/Predictions")
+        self._common_batch_end(trainer, outputs, batch, Mode.TEST)
 
-    def _common_batch_end(self, trainer, outputs, batch, wandb_log_label="Train/Predictions"):
+    def _common_batch_end(self, trainer, outputs, batch, mode: Mode = Mode.TRAIN):
         """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
         # Log images only every N batches
         if (trainer.batch_idx + 1) % self.logging_batch_interval != 0:
@@ -93,7 +98,8 @@ class LogMedia(Callback):
 
         self._check_for_wandb_logger(trainer)
 
-        mask_list = self._get_wandb_image_from_batch(batch, outputs)
+        mask_list = self._get_wandb_image_from_batch(batch, outputs, mode)
+        wandb_log_label = f"{mode.value}/Predictions"
         trainer.logger.experiment.log({wandb_log_label: mask_list}, commit=False)
 
     def _check_for_wandb_logger(self, trainer):
@@ -113,10 +119,13 @@ class LogMedia(Callback):
                 self.flag_warn_once = True
             return None
 
-    def _get_wandb_image_from_batch(self, batch, outputs):
+    def _get_wandb_image_from_batch(self, batch, outputs, mode: Mode = Mode.TRAIN):
         # Pick the batch from GPU0, Dataloader0
         inputs, labels = batch
-        predictions = outputs[0][0]["extra"]["preds"]
+        if mode == Mode.TRAIN:
+            predictions = outputs[0][0]["extra"]["preds"]
+        else:
+            predictions = outputs["preds"]
 
         # Limit the num of samples and convert to numpy
         inputs = inputs[: self.max_images_to_log].detach().cpu().numpy().transpose((0, 2, 3, 1))
