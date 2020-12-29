@@ -5,7 +5,7 @@ gpus: 1 # Denotes the number of gpus to use. Set CUDA_VISIBLE_DEVICES env var to
 accelerator: "ddp"
 precision: 16
 
-max_epochs: 1
+max_epochs: 100
 resume_from_checkpoint: null
 log_every_n_steps: 1
 
