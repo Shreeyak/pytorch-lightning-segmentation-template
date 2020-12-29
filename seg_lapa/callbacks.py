@@ -77,15 +77,32 @@ class LogMedia(Callback):
         self.flag_warn_once = False
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        self._common_batch_end(trainer, outputs, batch, "Train/Predictions")
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        self._common_batch_end(trainer, outputs, batch, "Val/Predictions")
+
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        self._common_batch_end(trainer, outputs, batch, "Test/Predictions")
+
+    def _common_batch_end(self, trainer, outputs, batch, wandb_log_label="Train/Predictions"):
+        """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
         # Log images only every N batches
         if (trainer.batch_idx + 1) % self.logging_batch_interval != 0:
             return
 
-        # Only works with wandb logger
+        self._check_for_wandb_logger(trainer)
+
+        mask_list = self._get_wandb_image_from_batch(batch, outputs)
+        trainer.logger.experiment.log({wandb_log_label: mask_list}, commit=False)
+
+    def _check_for_wandb_logger(self, trainer):
+        """This callback only works with wandb logger.
+        Skip if any other logger detected with warning"""
         if trainer.logger is None:
-            return
+            return None
         if isinstance(trainer.logger.experiment, pl.loggers.base.DummyExperiment):
-            return
+            return None
         if not isinstance(trainer.logger.experiment, wandb.sdk.wandb_run.Run):
             if not self.flag_warn_once:
                 # Given warning print only once. To prevent clutter.
@@ -93,9 +110,11 @@ class LogMedia(Callback):
                     f"WARN: LogMedia only works with wandb logger. Current logger: {trainer.logger.experiment}. "
                     f"Will not log any media this run"
                 )
-            return
+                self.flag_warn_once = True
+            return None
 
-        # Pick the last batch and logits
+    def _get_wandb_image_from_batch(self, batch, outputs):
+        # Pick the batch from GPU0, Dataloader0
         inputs, labels = batch
         predictions = outputs[0][0]["extra"]["preds"]
 
@@ -104,7 +123,7 @@ class LogMedia(Callback):
         labels = labels[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
         predictions = predictions[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
 
-        # Log to wandb
+        # Create wandb Image for logging
         mask_list = []
         for img, lbl, pred in zip(inputs, labels, predictions):
             mask_img = wandb.Image(
@@ -116,4 +135,4 @@ class LogMedia(Callback):
             )
             mask_list.append(mask_img)
 
-        trainer.logger.experiment.log({"Train/Predictions": mask_list}, commit=False)
+        return mask_list
