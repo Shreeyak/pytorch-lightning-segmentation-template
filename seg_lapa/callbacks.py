@@ -162,8 +162,8 @@ class LogMedia(Callback):
     def _logger_is_wandb(self, trainer):
         """This callback only works with wandb logger.
         Skip if any other logger detected with warning"""
-        if trainer.logger is None or isinstance(trainer.logger.experiment, pl.loggers.base.DummyExperiment):
-            # DummyExperiment is used in Trainer's initial validation checks
+        if trainer.logger is None or trainer.running_sanity_check:
+            # pl.loggers.base.DummyExperiment is used in Trainer's initial validation checks
             return False
 
         if not isinstance(trainer.logger.experiment, wandb.sdk.wandb_run.Run):
