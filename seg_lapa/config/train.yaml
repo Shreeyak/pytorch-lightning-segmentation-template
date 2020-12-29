@@ -3,7 +3,7 @@ random_seed: 0  # If None, seeds not set. If int, uses value to seed.
 checkpoint_load:
   resume_training: True
   resume_wandb_run: True
-  wandb_run_id: "1eerdi7o"
+  wandb_run_id: "21kgt2w9"
   checkpoints_filename: "epoch=1-step=9.ckpt"
 
 defaults:

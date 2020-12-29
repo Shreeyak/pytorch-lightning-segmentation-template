@@ -1,6 +1,6 @@
 # @package _group_
 name: wandb
 entity: cleargrasp2
-project: segmentation
+project: segmentation_debug
 run_name: null  # If None, will generate random name
 save_dir: null # If None, the logs are saved in package's root dir
