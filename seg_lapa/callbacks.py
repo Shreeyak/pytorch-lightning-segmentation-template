@@ -1,10 +1,9 @@
 from enum import Enum
-from typing import Optional
 
-import pytorch_lightning as pl
 import numpy as np
 import wandb
 from pytorch_lightning.callbacks import early_stopping, Callback
+from pytorch_lightning import loggers as pl_loggers
 
 
 class Mode(Enum):
@@ -162,16 +161,16 @@ class LogMedia(Callback):
     def _logger_is_wandb(self, trainer):
         """This callback only works with wandb logger.
         Skip if any other logger detected with warning"""
-        if trainer.logger is None or trainer.running_sanity_check:
-            # pl.loggers.base.DummyExperiment is used in Trainer's initial validation checks
+        if isinstance(trainer.logger, pl_loggers.base.DummyLogger):
+            # DummyLogger is used on rank>0 processes. Ignore it
             return False
 
-        if not isinstance(trainer.logger.experiment, wandb.sdk.wandb_run.Run):
+        if not isinstance(trainer.logger, pl_loggers.WandbLogger):
             if not self.flag_warn_once:
                 # Give warning print only once to prevent clutter.
                 print(
                     f"WARN: LogMedia only works with wandb logger. Current logger: {trainer.logger.experiment}. "
-                    f"Will not log any media this run"
+                    f"Will not log any media to wandb this run"
                 )
                 self.flag_warn_once = True
             return False
