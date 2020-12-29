@@ -169,7 +169,7 @@ class LogMedia(Callback):
             if not self.flag_warn_once:
                 # Give warning print only once to prevent clutter.
                 print(
-                    f"WARN: LogMedia only works with wandb logger. Current logger: {trainer.logger.experiment}. "
+                    f"WARN: LogMedia only works with wandb logger. Current logger: {trainer.logger}. "
                     f"Will not log any media to wandb this run"
                 )
                 self.flag_warn_once = True
