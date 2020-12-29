@@ -50,6 +50,7 @@ class CheckpointConf:
     mode: str
     save_last: Optional[bool]
     period: int
+    save_top_k: Optional[int]
 
     def get_callback(self, logs_dir):
         args_dict = asdict_filtered(self)

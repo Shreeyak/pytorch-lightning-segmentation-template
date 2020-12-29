@@ -5,7 +5,7 @@ gpus: 1 # Denotes the number of gpus to use. Set CUDA_VISIBLE_DEVICES env var to
 accelerator: "ddp"
 precision: 16
 
-max_epochs: 1
+max_epochs: 3
 resume_from_checkpoint: null
 log_every_n_steps: 1
 
@@ -16,6 +16,6 @@ deterministic: True # If true enables cudnn.deterministic.
 # Limit batches for debugging
 fast_dev_run: False # If True, runs 1 batch of train, val and test to find any bugs (ie: a sort of unit test).
 overfit_batches: 0.0 # Overfit a percent of training data (float) or a set number of batches (int)
-limit_train_batches: 1.0 # How much of training dataset to check (floats = percent, int = num_batches)
-limit_val_batches: 1.0
-limit_test_batches: 1.0
+limit_train_batches: 5 # How much of training dataset to check (floats = percent, int = num_batches)
+limit_val_batches: 5
+limit_test_batches: 5

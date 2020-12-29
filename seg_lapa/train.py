@@ -3,7 +3,6 @@ from typing import Any, List, Optional
 
 import hydra
 import pytorch_lightning as pl
-import torch
 import wandb
 from omegaconf import OmegaConf, DictConfig
 
@@ -123,6 +122,8 @@ class DeeplabV3plus(pl.LightningModule):
 def create_log_dir(cfg):
     # Set the run ID: Read from config if resuming training, else generate unique id
     run_id = wandb.util.generate_id()
+    if cfg.checkpoint_load.resume_training and cfg.checkpoint_load.wandb_run_id is not None:
+        run_id = cfg.checkpoint_load.wandb_run_id
 
     # Create log dir
     log_root_dir = get_project_root() / LOGS_DIR
@@ -149,7 +150,10 @@ def main(cfg: DictConfig):
     log_dir, run_id = create_log_dir(cfg)
 
     wb_logger = config.logger.get_logger(cfg, run_id, get_project_root())
-    model = DeeplabV3plus(config, log_dir)
+    if cfg.checkpoint_load.resume_training and cfg.checkpoint_load.checkpoints_filename is not None:
+        model = DeeplabV3plus.load_from_checkpoint(str(log_dir / cfg.checkpoint_load.checkpoints_filename), config=config, log_dir=log_dir)
+    else:
+        model = DeeplabV3plus(config, log_dir)
     callbacks = config.callbacks.get_callbacks_list(log_dir)
     trainer = config.trainer.get_trainer(wb_logger, callbacks)
     dm = config.dataset.get_datamodule()

@@ -7,4 +7,5 @@ checkpoints:
   monitor: 'Val/mIoU'
   mode: 'max'
   period: 1
-  save_last: null
+  save_last: True
+  save_top_k: 1
