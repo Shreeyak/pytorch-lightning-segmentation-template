@@ -161,7 +161,7 @@ class LogMedia(Callback):
     def _logger_is_wandb(self, trainer):
         """This callback only works with wandb logger.
         Skip if any other logger detected with warning"""
-        if isinstance(trainer.logger, pl_loggers.base.DummyLogger):
+        if isinstance(trainer.logger, pl_loggers.base.DummyLogger) or trainer.running_sanity_check:
             # DummyLogger is used on processes other than rank0. Ignore it.
             return False
 
