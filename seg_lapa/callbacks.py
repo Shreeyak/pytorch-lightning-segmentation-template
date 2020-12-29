@@ -1,6 +1,9 @@
+from collections import deque
 from enum import Enum
+from typing import Dict
 
 import numpy as np
+import torch
 import wandb
 from pytorch_lightning.callbacks import early_stopping, Callback
 from pytorch_lightning import loggers as pl_loggers
@@ -96,41 +99,55 @@ class LogMedia(Callback):
         }
         self.flag_warn_once = False
 
+    def setup(self, trainer, pl_module, stage: str):
+        # This callback requires a ``.log_media`` attribute in LightningModule
+        req_attr = "log_media"
+        if not hasattr(pl_module, req_attr):
+            raise AttributeError(
+                f"{pl_module.__class__.__name__}.{req_attr} not found. The {LogMedia.__name__} "
+                f"callback requires the LightningModule to have the {req_attr} attribute."
+            )
+
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         # Save media
-        if self._should_log(batch_idx, pl_module.current_epoch):
-            self._log_images_to_wandb(trainer, outputs, batch, Mode.TRAIN)
+        if self._should_log(pl_module, batch_idx):
+            self._log_images_to_wandb(trainer, pl_module, Mode.TRAIN)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         # Save media
-        if self._should_log(batch_idx, pl_module.current_epoch):
-            self._log_images_to_wandb(trainer, outputs, batch, Mode.VAL)
+        if self._should_log(pl_module, batch_idx):
+            self._log_images_to_wandb(trainer, pl_module, Mode.VAL)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         # Save media
-        if self._should_log(batch_idx, pl_module.current_epoch):
-            self._log_images_to_wandb(trainer, outputs, batch, Mode.TEST)
+        if self._should_log(pl_module, batch_idx):
+            self._log_images_to_wandb(trainer, pl_module, Mode.TEST)
 
-    def _log_images_to_wandb(self, trainer, outputs, batch, mode: Mode = Mode.TRAIN):
+    def _log_images_to_wandb(self, trainer, pl_module, mode: Mode = Mode.TRAIN):
         """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
         if not self._logger_is_wandb(trainer):
             return
 
-        # Pick the batch from GPU0, Dataloader0
-        inputs, labels = batch
-        if mode == Mode.TRAIN:
-            predictions = outputs[0][0]["extra"]["preds"]
-        else:
-            predictions = outputs["preds"]
+        # Get all the latest batches from the data queue in LightningModule
+        media_data = []
+        log_media = pl_module.log_media[mode]
+        while len(log_media) > 0:
+            media_data.append(log_media.popleft())
+        if len(media_data) == 0:
+            pl_module.print("WARN: log_media queue empty for LogMedia Callback")
+
+        inputs = torch.cat([x["inputs"] for x in media_data], dim=0)
+        labels = torch.cat([x["labels"] for x in media_data], dim=0)
+        preds = torch.cat([x["preds"] for x in media_data], dim=0)
 
         # Limit the num of samples and convert to numpy
         inputs = inputs[: self.max_images_to_log].detach().cpu().numpy().transpose((0, 2, 3, 1))
         labels = labels[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
-        predictions = predictions[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
+        preds = preds[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
 
         # Create wandb Image for logging
         mask_list = []
-        for img, lbl, pred in zip(inputs, labels, predictions):
+        for img, lbl, pred in zip(inputs, labels, preds):
             mask_img = wandb.Image(
                 img,
                 masks={
@@ -143,16 +160,20 @@ class LogMedia(Callback):
         wandb_log_label = f"{mode.value}/Predictions"
         trainer.logger.experiment.log({wandb_log_label: mask_list}, commit=False)
 
-    def _should_log(self, batch_idx: int, epoch_idx: int) -> bool:
-        """Returns True if we should log at this step. We log only every N steps/epochs."""
-        should_continue = False
+    def _should_log(self, pl_module, batch_idx: int) -> bool:
+        """Returns True if logging should occur at this step and device.
+        Logging occurs only on Global Rank 0 every N steps/epochs"""
+        if pl_module.global_rank != 0:
+            return False
 
-        if self.logging_epoch_interval > 0:
+        should_continue = False
+        epoch_idx = pl_module.current_epoch
+        if self.logging_epoch_interval > 0 and epoch_idx > 0:
             # Only log 1st batch of Nth epoch
             if ((epoch_idx + 1) % self.logging_epoch_interval == 0) and (batch_idx == 0):
                 should_continue = True
 
-        if self.logging_batch_interval > 0:
+        if self.logging_batch_interval > 0 and batch_idx > 0:
             if (batch_idx + 1) % self.logging_batch_interval == 0:
                 should_continue = True
 
@@ -176,3 +197,13 @@ class LogMedia(Callback):
             return False
 
         return True
+
+    @classmethod
+    def get_log_media_structure(cls, log_media_max_batches: int) -> Dict[Mode, deque]:
+        """Create a data structure for LogMedia"""
+        log_media = {
+            Mode.TRAIN: deque(maxlen=log_media_max_batches),
+            Mode.VAL: deque(maxlen=log_media_max_batches),
+            Mode.TEST: deque(maxlen=log_media_max_batches),
+        }
+        return log_media
