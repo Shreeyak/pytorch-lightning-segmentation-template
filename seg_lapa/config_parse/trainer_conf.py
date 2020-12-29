@@ -30,11 +30,11 @@ class TrainerConfig(TrainerConf):
 
     benchmark: bool = False
     deterministic: bool = False
-    fast_dev_run: Union[int, bool] = False
-    overfit_batches: Union[int, float] = 0.0
-    limit_train_batches: Union[int, float] = 1.0
-    limit_val_batches: Union[int, float] = 1.0
-    limit_test_batches: Union[int, float] = 1.0
+    fast_dev_run: bool = False
+    overfit_batches: int = 0.0
+    limit_train_batches: float = 1.0
+    limit_val_batches: float = 1.0
+    limit_test_batches: float = 1.0
 
     def get_trainer(self, pl_logger: LightningLoggerBase, callbacks: List[Callback]) -> pl.Trainer:
         trainer = pl.Trainer(logger=pl_logger, callbacks=callbacks, **asdict_filtered(self))
