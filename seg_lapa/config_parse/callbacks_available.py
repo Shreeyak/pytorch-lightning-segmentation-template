@@ -33,6 +33,7 @@ class LogMediaConf:
     max_images_to_log: int
     logging_epoch_interval: Optional[int] = 0
     logging_batch_interval: Optional[int] = 0
+    save_to_disk: bool = False
 
-    def get_callback(self) -> Callback:
-        return LogMedia(**asdict_filtered(self))
+    def get_callback(self, logs_dir) -> Callback:
+        return LogMedia(logs_dir=logs_dir, **asdict_filtered(self))
