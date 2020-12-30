@@ -32,29 +32,22 @@ class WandbConf(LoggerConf):
     entity: str
     project: str
     run_name: Optional[str]
-    save_dir: Optional[str]
 
     def get_logger(self, cfg: DictConfig, run_id: str, save_dir: str) -> pl_loggers.WandbLogger:
         """Returns the Weights and Biases (wandb) logger object (really an wandb Run object)
-
-        The run object corresponds to a single execution of your script, typically this is an ML experiment.
-        Create a run with wandb.init(). It can be used for logging purposes. Example:
-            ```
-            run = wandb.init()
-            run.log({"Test/Loss": batch_loss})
-            ```
+        The run object corresponds to a single execution of the script and is returned from `wandb.init()`.
 
         Args:
             cfg: The entire config got from hydra, for purposes of logging the config of each run in wandb.
+            run_id: A generated runid for this run.
+            save_dir: Root dir to save wandb log files
 
         Returns:
             wandb.wandb_sdk.wandb_run.Run: wandb run object. Can be used for logging.
         """
-        # The argument names to wandb are different from the attribute names of the class.
+        # Some argument names to wandb are different from the attribute names of the class.
         # Pop the offending attributes before passing to init func.
         args_dict = asdict_filtered(self)
-        if args_dict["save_dir"] is None:
-            args_dict["save_dir"] = save_dir
         run_name = args_dict.pop("run_name")
 
         cfg_dict = OmegaConf.to_container(cfg, resolve=True)
