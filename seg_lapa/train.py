@@ -1,6 +1,6 @@
 import os
 from collections import deque
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import hydra
 import pytorch_lightning as pl
@@ -44,7 +44,7 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Save predictions to be logged. Returning images from _step methods is expensive.
         # Fill new data when existing data is consumed
-        self.log_media = LogMedia.get_log_media_structure(log_media_max_batches)
+        self.log_media: Dict[Mode, deque] = LogMedia.get_log_media_structure(log_media_max_batches)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
