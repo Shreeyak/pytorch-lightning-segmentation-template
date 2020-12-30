@@ -1,6 +1,6 @@
 from collections import deque
 from enum import Enum
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import torch
@@ -76,6 +76,7 @@ class LogMedia(Callback):
         logging_epoch_interval (int): If > 0, log every N epochs. It will extract samples from the first batch.
         logging_batch_interval (int): If > 0, log every N batches (i.e. steps)
         max_images_to_log (int): Max number of images to extract from a batch to log.
+        save_to_disk (optional, str): Path to save the results locally on disk. Pass None to disable saving to disk.
     """
 
     def __init__(
@@ -83,12 +84,14 @@ class LogMedia(Callback):
         max_images_to_log: int = 10,
         logging_epoch_interval: int = 1,
         logging_batch_interval: int = 0,
+        save_to_disk: Optional[str] = None,
         verbose: bool = True,
     ):
         super().__init__()
         self.max_images_to_log = max_images_to_log
         self.logging_epoch_interval = logging_epoch_interval
         self.logging_batch_interval = logging_batch_interval
+        self.save_to_disk = save_to_disk
         self.verbose = verbose
         self.flag_warn_once = False
 
@@ -134,11 +137,7 @@ class LogMedia(Callback):
         if self._should_log(pl_module, batch_idx):
             self._log_images_to_wandb(trainer, pl_module, Mode.TEST)
 
-    def _log_images_to_wandb(self, trainer, pl_module, mode: Mode = Mode.TRAIN):
-        """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
-        if not self._logger_is_wandb(trainer):
-            return
-
+    def _get_preds_from_lightningmodule(self, pl_module, mode: Mode):
         # Get all the latest batches from the data queue in LightningModule
         media_data = []
         log_media = pl_module.log_media[mode]
@@ -155,6 +154,20 @@ class LogMedia(Callback):
         inputs = inputs[: self.max_images_to_log].detach().cpu().numpy().transpose((0, 2, 3, 1))
         labels = labels[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
         preds = preds[: self.max_images_to_log].detach().cpu().numpy().astype(np.uint8)
+
+        return inputs, labels, preds
+
+    def _save_results_to_dist(self, pl_module, mode: Mode = Mode.TRAIN):
+        if self.save_to_disk is None:
+            return
+
+    def _log_images_to_wandb(self, trainer, pl_module, mode: Mode = Mode.TRAIN):
+        """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
+        if not self._logger_is_wandb(trainer):
+            return
+
+        # Get all the latest batches from the data queue in LightningModule
+        inputs, labels, preds = self._get_preds_from_lightningmodule(pl_module, mode)
 
         # Create wandb Image for logging
         mask_list = []
