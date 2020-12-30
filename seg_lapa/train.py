@@ -30,12 +30,11 @@ def fix_seeds(random_seed: Optional[int]) -> None:
 
 
 class DeeplabV3plus(pl.LightningModule):
-    def __init__(self, config: TrainConf, log_dir: str, log_media_max_batches=1):
+    def __init__(self, config: TrainConf, log_media_max_batches=1):
         super().__init__()
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        self.log_dir = log_dir
 
         self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
@@ -166,9 +165,9 @@ def main(cfg: DictConfig):
     log_dir, run_id = create_log_dir(cfg)
 
     wb_logger = config.logger.get_logger(cfg, run_id, get_project_root())
-    model = DeeplabV3plus(config, log_dir)
     callbacks = config.callbacks.get_callbacks_list(log_dir)
-    trainer = config.trainer.get_trainer(wb_logger, callbacks)
+    trainer = config.trainer.get_trainer(wb_logger, callbacks, get_project_root())
+    model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
 
     # Run Training
