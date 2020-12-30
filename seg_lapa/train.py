@@ -1,9 +1,9 @@
 import os
-from typing import Any, List, Optional
+from collections import deque
+from typing import Any, Dict, List, Optional
 
 import hydra
 import pytorch_lightning as pl
-import torch
 import wandb
 from omegaconf import OmegaConf, DictConfig
 
@@ -12,7 +12,7 @@ from seg_lapa.config_parse import train_conf
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.utils.path_check import get_project_root
-
+from seg_lapa.callbacks import Mode, LogMedia
 
 LOGS_DIR = "logs"
 
@@ -30,7 +30,7 @@ def fix_seeds(random_seed: Optional[int]) -> None:
 
 
 class DeeplabV3plus(pl.LightningModule):
-    def __init__(self, config: TrainConf, log_dir: str):
+    def __init__(self, config: TrainConf, log_dir: str, log_media_max_batches=1):
         super().__init__()
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
@@ -40,6 +40,10 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
+
+        # Save predictions to be logged. Returning images from _step methods is expensive.
+        # Fill new data when existing data is consumed
+        self.log_media: Dict[Mode, deque] = LogMedia.get_log_media_structure(log_media_max_batches)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -70,7 +74,11 @@ class DeeplabV3plus(pl.LightningModule):
         # Calculate Metrics
         self.iou_train(predictions, labels)
 
-        return loss
+        # Returning images is expensive - All the batches are accumulated for _epoch_end().
+        # Save the latst predictions to be logged in an attr. They will be consumed by the LogMedia callback.
+        self.log_media[Mode.TRAIN].append({"inputs": inputs, "labels": labels, "preds": predictions})
+
+        return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
@@ -83,6 +91,9 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Calculate Metrics
         self.iou_val(predictions, labels)
+
+        # Save the latest predictions to be logged
+        self.log_media[Mode.VAL].append({"inputs": inputs, "labels": labels, "preds": predictions})
 
         return {"val_loss": loss}
 
@@ -98,19 +109,25 @@ class DeeplabV3plus(pl.LightningModule):
         # Calculate Metrics
         self.iou_test(predictions, labels)
 
+        # Save the latest predictions to be logged
+        self.log_media[Mode.TEST].append({"inputs": inputs, "labels": labels, "preds": predictions})
+
         return {"test_loss": loss}
 
     def training_epoch_end(self, outputs: List[Any]):
+        # Compute and log metrics across epoch
         metrics_avg = self.iou_train.compute()
         self.log("Train/mIoU", metrics_avg.miou)
         self.iou_train.reset()
 
     def validation_epoch_end(self, outputs: List[Any]):
+        # Compute and log metrics across epoch
         metrics_avg = self.iou_val.compute()
         self.log("Val/mIoU", metrics_avg.miou)
         self.iou_val.reset()
 
     def test_epoch_end(self, outputs: List[Any]):
+        # Compute and log metrics across epoch
         metrics_avg = self.iou_test.compute()
         self.log("Test/mIoU", metrics_avg.miou)
         self.iou_test.reset()
