@@ -99,6 +99,6 @@ valid_names = {
 
 def validate_config_group(cfg_subgroup: DictConfig) -> CallbacksConf:
     validated_dataclass = validate_config_group_generic(
-        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="callback"
+        cfg_subgroup, dataclass_dict=valid_names, config_category="callback"
     )
     return validated_dataclass

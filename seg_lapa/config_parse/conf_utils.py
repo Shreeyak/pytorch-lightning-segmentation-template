@@ -29,10 +29,8 @@ def asdict_filtered(obj, remove_keys: Optional[Sequence[str]] = None) -> Dict:
     return args
 
 
-def validate_config_group_generic(
-    cfg_group: DictConfig, mapping_names_dataclass: Dict, config_category: Optional[str] = None
-):
-    """Validate a hydra config group (DictConfig) by using it to initialize a pydantic dataclass.
+def validate_config_group_generic(cfg_group: DictConfig, dataclass_dict: Dict, config_category: str = "option"):
+    """Use a hydra config group to initialize a pydantic dataclass. Initializing it validates the data.
     Each of our config groups has a name parameter, which is used to map to valid dataclasses for validation.
 
     Pydantic will force the parameters to the desired datatype and will throw errors if the config
@@ -40,28 +38,34 @@ def validate_config_group_generic(
 
     Args:
         cfg_group: The config group extracted from the hydra config.
-        mapping_names_dataclass: A dict containing the mapping from 'name' entry in config to matching
-                                 pydantic dataclasses for validation.
+        dataclass_dict: A dict containing the mapping from 'name' entry in config files to matching
+                        pydantic dataclasses for validation.
         config_category: For pretty print statements. Configure the name of the config group when throwing error.
 
     Raises:
         ValueError: If the name parameter does not match to any of the valid options
     """
-    try:
-        # Get the dataclass to init from the mapping
-        dataclass_config = mapping_names_dataclass[cfg_group.name]
+    if not OmegaConf.is_config(cfg_group):
+        raise ValueError(f"Given config not an OmegaConf config. Got: {type(cfg_group)}")
 
-        # Init the dataclass using hydra config
-        cfg_asdict = OmegaConf.to_container(cfg_group, resolve=True)
-        dataconf = dataclass_config(**cfg_asdict)
-
-    except KeyError:
-        if config_category is None:
-            config_category = "option"
-
-        raise ValueError(
-            f"Invalid Config: '{cfg_group.name}' is not a valid {config_category}. "
-            f"Valid Options: {list(mapping_names_dataclass.keys())}"
+    # Get the "name" entry in config
+    name = cfg_group.name
+    if name is None:
+        raise KeyError(
+            f"The given config does not contain a 'name' entry. Cannot map to a dataclass.\n"
+            f"  Config:\n {OmegaConf.to_yaml(cfg_group)}"
         )
 
-    return dataconf
+    # Convert hydra config to dict - This dict contains the arguments to init dataclass
+    cfg_asdict = OmegaConf.to_container(cfg_group, resolve=True)
+
+    # Get the dataclass to init from the mapping. Init the dataclass using hydra config
+    try:
+        dataclass_obj = dataclass_dict[name](**cfg_asdict)
+    except KeyError:
+        raise ValueError(
+            f"Invalid Config: '{cfg_group.name}' is not a valid {config_category}. "
+            f"Valid Options: {list(dataclass_dict.keys())}"
+        )
+
+    return dataclass_obj
