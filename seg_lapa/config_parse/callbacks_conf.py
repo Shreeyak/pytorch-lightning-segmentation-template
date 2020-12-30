@@ -1,13 +1,17 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
+from pytorch_lightning.callbacks import Callback
 
-from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
-from pytorch_lightning.callbacks import ModelCheckpoint
-from seg_lapa.callbacks import EarlyStopping, LogMedia
+from seg_lapa.config_parse.conf_utils import validate_config_group_generic
+from seg_lapa.config_parse.callbacks_available import EarlyStopConf, CheckpointConf, LogMediaConf
+
+# The Callbacks config cannot be directly initialized because it contains sub-entries for each callback, each
+# of which describes a separate class.
+# For each of the callbacks, we define a dataclass and use them to init the list of callbacks
 
 
 @dataclass(frozen=True)
@@ -15,60 +19,14 @@ class CallbacksConf(ABC):
     name: str
 
     @abstractmethod
-    def get_callbacks_dict(self):
-        return {}
-
-    def get_callbacks_list(self, *args):
-        callback_dict = self.get_callbacks_dict(*args)
-        callback_list = list(callback_dict.values())
-        return callback_list
+    def get_callbacks_list(self, *args) -> List:
+        return []
 
 
 @dataclass(frozen=True)
 class DisabledCallbacksConf(CallbacksConf):
-    def get_callbacks_dict(self) -> Dict:
-        return {}
-
-
-@dataclass(frozen=True)
-class EarlyStopConf:
-    """Dataclass just to initialize and return the Early Stopping Callback"""
-
-    min_delta: float
-    patience: int
-
-    def get_callback(self):
-        args_dict = asdict_filtered(self)
-        return EarlyStopping(**args_dict)
-
-
-@dataclass(frozen=True)
-class CheckpointConf:
-    """Dataclass just to initialize and return the Checkpoint Callback"""
-
-    monitor: Optional[str]
-    mode: str
-    save_last: Optional[bool]
-    period: int
-
-    def get_callback(self, logs_dir):
-        args_dict = asdict_filtered(self)
-        checkpoint_callback = ModelCheckpoint(dirpath=logs_dir, **args_dict)
-        return checkpoint_callback
-
-
-@dataclass(frozen=True)
-class LogMediaConf:
-    """Dataclass just to initialize and return the Checkpoint Callback"""
-
-    max_images_to_log: int
-    logging_epoch_interval: Optional[int] = 0
-    logging_batch_interval: Optional[int] = 0
-
-    def get_callback(self):
-        args_dict = asdict_filtered(self)
-        checkpoint_callback = LogMedia(**args_dict)
-        return checkpoint_callback
+    def get_callbacks_list(self) -> List:
+        return []
 
 
 @dataclass(frozen=True)
@@ -79,16 +37,24 @@ class StandardCallbacksConf(CallbacksConf):
     checkpoints: Optional[Dict] = None
     log_media: Optional[Dict] = None
 
-    def get_callbacks_dict(self, logs_dir) -> Dict:
-        """Get all available callbacks and return as a dict"""
+    def get_callbacks_list(self, logs_dir) -> List[Callback]:
+        """Get all available callbacks and the Callback Objects in list
+        If a callback's entry is not present in the config file, it'll not be output in the list
+        """
+        callbacks_list = []
         if self.early_stopping is not None:
             early_stop = EarlyStopConf(**self.early_stopping).get_callback()
+            callbacks_list.append(early_stop)
+
         if self.checkpoints is not None:
             checkpoint = CheckpointConf(**self.checkpoints).get_callback(logs_dir)
+            callbacks_list.append(checkpoint)
+
         if self.log_media is not None:
             log_media = LogMediaConf(**self.log_media).get_callback()
+            callbacks_list.append(log_media)
 
-        return {"early_stopping": early_stop, "checkpoint": checkpoint, "log_media": log_media}
+        return callbacks_list
 
 
 valid_names = {
