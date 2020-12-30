@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 
 import hydra
 import pytorch_lightning as pl
-import torch
 import wandb
 from omegaconf import OmegaConf, DictConfig
 

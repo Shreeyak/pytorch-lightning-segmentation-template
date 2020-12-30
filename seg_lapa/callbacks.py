@@ -19,9 +19,9 @@ class EarlyStopping(early_stopping.EarlyStopping):
     """Direct sub-class of PL's early-stopping, changing the default parameters to suit our project
 
     Args:
-        monitor: Monitor a key validation metric (IoU). Monitoring loss is not a good idea as it is an unreliable
-                 indicator of model performance. Two models might have the same loss but different
-                 performance (IoU), or the loss might start increasing, even though IoU does not decrease.
+        monitor: Monitor a key validation metric (eg: IoU). Monitoring loss is not a good idea as it is an unreliable
+                 indicator of model performance. Two models might have the same loss but different performance
+                 or the loss might start increasing, even though performance does not decrease.
 
         min_delta: Project-dependent - choose a value for your metric below which you'd consider the improvement
                    negligible.
@@ -62,6 +62,11 @@ class EarlyStopping(early_stopping.EarlyStopping):
             mode=mode,
             strict=strict,
         )
+        self.verbose = verbose
+
+    def setup(self, trainer, pl_module, stage: str):
+        if self.verbose:
+            pl_module.print(f"Initializing Callback {EarlyStopping.__name__}")
 
 
 class LogMedia(Callback):
@@ -75,15 +80,19 @@ class LogMedia(Callback):
 
     def __init__(
         self,
+        max_images_to_log: int = 10,
         logging_epoch_interval: int = 1,
         logging_batch_interval: int = 0,
-        max_images_to_log: int = 10,
+        verbose: bool = True,
     ):
-
         super().__init__()
+        self.max_images_to_log = max_images_to_log
         self.logging_epoch_interval = logging_epoch_interval
         self.logging_batch_interval = logging_batch_interval
-        self.max_images_to_log = max_images_to_log
+        self.verbose = verbose
+        self.flag_warn_once = False
+
+        # Project-specific fields
         self.class_labels_lapa = {
             0: "background",
             1: "skin",
@@ -97,7 +106,6 @@ class LogMedia(Callback):
             9: "lip_lower",
             10: "hair",
         }
-        self.flag_warn_once = False
 
     def setup(self, trainer, pl_module, stage: str):
         # This callback requires a ``.log_media`` attribute in LightningModule
@@ -107,6 +115,9 @@ class LogMedia(Callback):
                 f"{pl_module.__class__.__name__}.{req_attr} not found. The {LogMedia.__name__} "
                 f"callback requires the LightningModule to have the {req_attr} attribute."
             )
+
+        if self.verbose:
+            pl_module.print(f"Initializing Callback {LogMedia.__name__}")
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         # Save media
@@ -134,7 +145,7 @@ class LogMedia(Callback):
         while len(log_media) > 0:
             media_data.append(log_media.popleft())
         if len(media_data) == 0:
-            pl_module.print("WARN: log_media queue empty for LogMedia Callback")
+            pl_module.print("WARN: LogMedia Callback: log_media queue empty, no samples to log")
 
         inputs = torch.cat([x["inputs"] for x in media_data], dim=0)
         labels = torch.cat([x["labels"] for x in media_data], dim=0)
