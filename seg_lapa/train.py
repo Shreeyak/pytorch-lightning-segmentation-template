@@ -6,6 +6,7 @@ import hydra
 import pytorch_lightning as pl
 import wandb
 from omegaconf import OmegaConf, DictConfig
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 from seg_lapa import metrics
 from seg_lapa.config_parse import train_conf
@@ -15,6 +16,15 @@ from seg_lapa.utils.path_check import get_project_root
 from seg_lapa.callbacks import Mode, LogMedia
 
 LOGS_DIR = "logs"
+
+
+def is_rank_zero():
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    node_rank = int(os.environ.get("NODE_RANK", 0))
+    if local_rank == 0 and node_rank == 0:
+        return True
+
+    return False
 
 
 def fix_seeds(random_seed: Optional[int]) -> None:
@@ -136,11 +146,17 @@ class DeeplabV3plus(pl.LightningModule):
         return optimizer
 
 
-def create_log_dir(cfg):
+@rank_zero_only
+def generate_run_id(cfg: DictConfig):
     # Set the run ID: Read from config if resuming training, else generate unique id
+    # TODO: read from cfg if resuming training - get from config dataclass! add method to resume training section.
     run_id = wandb.util.generate_id()
+    return run_id
 
-    # Create log dir
+
+@rank_zero_only
+def create_log_dir(cfg: DictConfig, run_id: str):
+    """Each run's log dir will have same name as wandb runid"""
     log_root_dir = get_project_root() / LOGS_DIR
     log_dir = log_root_dir / run_id
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -148,21 +164,21 @@ def create_log_dir(cfg):
     # Save the input config file to logs dir
     OmegaConf.save(cfg, log_dir / "train.yaml")
 
-    return log_dir, run_id
+    return log_dir
 
 
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    if local_rank == 0:
+    if is_rank_zero():
         print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
 
     config = train_conf.parse_config(cfg)
-    if local_rank == 0:
+    if is_rank_zero():
         print("\nResolved Dataclass:\n", config, "\n")
 
     fix_seeds(config.random_seed)
-    log_dir, run_id = create_log_dir(cfg)
+    run_id = generate_run_id(cfg)
+    log_dir = create_log_dir(cfg, run_id)
 
     wb_logger = config.logger.get_logger(cfg, run_id, get_project_root())
     callbacks = config.callbacks.get_callbacks_list(log_dir)

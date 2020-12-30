@@ -7,6 +7,7 @@ import torch
 import wandb
 from pytorch_lightning.callbacks import early_stopping, Callback
 from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.utilities.distributed import rank_zero_only
 
 # Specific to logging media to disk
 import cv2
@@ -91,8 +92,8 @@ class LogMedia(Callback):
         max_images_to_log: int = 10,
         logging_epoch_interval: int = 1,
         logging_batch_interval: int = 0,
-        save_to_disk: bool = False,
-        logs_dir: Path = None,
+        save_to_disk: bool = True,
+        logs_dir: Optional[Path] = None,
         verbose: bool = True,
     ):
         super().__init__()
@@ -103,11 +104,6 @@ class LogMedia(Callback):
         self.logs_dir = logs_dir
         self.verbose = verbose
         self.flag_warn_once = False
-
-        if self.save_to_disk:
-            if logs_dir is None:
-                raise ValueError(f"save_to_disk is True, but no logs_dir given")
-            logs_dir.mkdir(parents=True, exist_ok=True)
 
         # Project-specific fields
         self.class_labels_lapa = {
@@ -135,6 +131,16 @@ class LogMedia(Callback):
 
         if self.verbose:
             pl_module.print(f"Initializing Callback {LogMedia.__name__}")
+
+        if trainer.is_global_zero:
+            if self.save_to_disk:
+                if self.logs_dir is None:
+                    raise ValueError(
+                        f"Callback {LogMedia.__name__}: Invalid logs_dir: {self.logs_dir}. Please give "
+                        f"valid path for logs_dir"
+                    )
+                else:
+                    self.logs_dir.mkdir(parents=True, exist_ok=True)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         # Save media
@@ -178,6 +184,7 @@ class LogMedia(Callback):
 
         return inputs, labels, preds
 
+    @rank_zero_only
     def _save_results_to_disk(self, pl_module, mode: Mode):
         """For a given mode (train/val/test), save the results to disk"""
         # Get the latest batches from the data queue in LightningModule
@@ -214,6 +221,7 @@ class LogMedia(Callback):
         pl_module.print(f"Savings results to disk: {fname}")
         cv2.imwrite(fname, cv2.cvtColor(grid_results, cv2.COLOR_RGB2BGR))
 
+    @rank_zero_only
     def _log_images_to_wandb(self, trainer, pl_module, mode: Mode = Mode.TRAIN):
         """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
         if not self._logger_is_wandb(trainer):
@@ -244,9 +252,6 @@ class LogMedia(Callback):
     def _should_log(self, pl_module, batch_idx: int) -> bool:
         """Returns True if logging should occur at this step and device.
         Logging occurs only on Global Rank 0 every N steps/epochs"""
-        if pl_module.global_rank != 0:
-            return False
-
         should_continue = False
         epoch_idx = pl_module.current_epoch
         if self.logging_epoch_interval > 0 and epoch_idx > 0:
