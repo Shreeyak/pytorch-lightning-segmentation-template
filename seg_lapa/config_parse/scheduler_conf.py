@@ -85,6 +85,6 @@ valid_names = {
 
 def validate_config_group(cfg_subgroup: DictConfig) -> SchedulerConf:
     validated_dataclass = validate_config_group_generic(
-        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="scheduler"
+        cfg_subgroup, dataclass_dict=valid_names, config_category="scheduler"
     )
     return validated_dataclass

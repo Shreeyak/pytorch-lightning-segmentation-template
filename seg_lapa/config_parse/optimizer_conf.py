@@ -41,6 +41,6 @@ valid_names = {"adam": AdamConf, "sgd": SgdConf}
 
 def validate_config_group(cfg_subgroup: DictConfig) -> OptimConf:
     validated_dataclass = validate_config_group_generic(
-        cfg_subgroup, mapping_names_dataclass=valid_names, config_category="optimizer"
+        cfg_subgroup, dataclass_dict=valid_names, config_category="optimizer"
     )
     return validated_dataclass
