@@ -1,6 +1,7 @@
 import os
 from collections import deque
 from typing import Any, Dict, List, Optional
+from pathlib import Path
 
 import hydra
 import pytorch_lightning as pl
@@ -17,6 +18,38 @@ from seg_lapa.callbacks import Mode, LogMedia
 LOGS_DIR = "logs"
 
 
+def is_rank_zero():
+    local_rank = int(os.environ.get("LOCAL_RANK", 0))
+    node_rank = int(os.environ.get("NODE_RANK", 0))
+    if local_rank == 0 and node_rank == 0:
+        return True
+
+    return False
+
+
+def generate_run_id(cfg: DictConfig):
+    # Set the run ID: Read from config if resuming training, else generate unique id
+    # TODO: read from cfg if resuming training - get from config dataclass! add method to resume training section.
+    run_id = wandb.util.generate_id()
+    return run_id
+
+
+def create_log_dir(cfg: DictConfig, run_id: str) -> Optional[Path]:
+    """Each run's log dir will have same name as wandb runid"""
+    log_root_dir = get_project_root() / LOGS_DIR
+
+    if is_rank_zero():
+        log_dir = log_root_dir / run_id
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save the input config file to logs dir
+        OmegaConf.save(cfg, log_dir / "train.yaml")
+    else:
+        return log_root_dir / "None"
+
+    return log_dir
+
+
 def fix_seeds(random_seed: Optional[int]) -> None:
     """Fix seeds for reproducibility.
     Ref:
@@ -30,20 +63,19 @@ def fix_seeds(random_seed: Optional[int]) -> None:
 
 
 class DeeplabV3plus(pl.LightningModule):
-    def __init__(self, config: TrainConf, log_dir: str, log_media_max_batches=1):
+    def __init__(self, config: TrainConf, log_media_max_batches=1):
         super().__init__()
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
         self.config = config
         self.model = self.config.model.get_model()
-        self.log_dir = log_dir
 
         self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
 
-        # Save predictions to be logged. Returning images from _step methods is expensive.
-        # Fill new data when existing data is consumed
-        self.log_media: Dict[Mode, deque] = LogMedia.get_log_media_structure(log_media_max_batches)
+        # Returning images from _step methods is memory-expensive. Save predictions to be logged in a circular queue
+        # and consume in a callback.
+        self.log_media: Dict[Mode, deque] = LogMedia.get_empty_data_queue(log_media_max_batches)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -137,38 +169,23 @@ class DeeplabV3plus(pl.LightningModule):
         return optimizer
 
 
-def create_log_dir(cfg):
-    # Set the run ID: Read from config if resuming training, else generate unique id
-    run_id = wandb.util.generate_id()
-
-    # Create log dir
-    log_root_dir = get_project_root() / LOGS_DIR
-    log_dir = log_root_dir / run_id
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save the input config file to logs dir
-    OmegaConf.save(cfg, log_dir / "train.yaml")
-
-    return log_dir, run_id
-
-
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    if local_rank == 0:
-        print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
+    # if is_rank_zero():
+    #     print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
 
     config = train_conf.parse_config(cfg)
-    if local_rank == 0:
+    if is_rank_zero():
         print("\nResolved Dataclass:\n", config, "\n")
 
     fix_seeds(config.random_seed)
-    log_dir, run_id = create_log_dir(cfg)
+    run_id = generate_run_id(cfg)
+    log_dir = create_log_dir(cfg, run_id)
 
     wb_logger = config.logger.get_logger(cfg, run_id, get_project_root())
-    model = DeeplabV3plus(config, log_dir)
     callbacks = config.callbacks.get_callbacks_list(log_dir)
-    trainer = config.trainer.get_trainer(wb_logger, callbacks)
+    trainer = config.trainer.get_trainer(wb_logger, callbacks, get_project_root())
+    model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
 
     # Run Training

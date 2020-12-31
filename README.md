@@ -69,6 +69,35 @@ To use this template for your own project:
 This template was based on the Pytorch-Lightning
 [seed project](https://github.com/PyTorchLightning/deep-learning-project-template).
 
+### Callbacks
+
+The callbacks can be configured from the config files or
+[command line overrides](https://hydra.cc/docs/next/advanced/override_grammar/basic/).
+To disable a config, simply remove them from the config. More callbacks can easily be added to the config system
+as needed. The following callbacks are added as of now:
+
+- [Early Stopping](https://pytorch-lightning.readthedocs.io/en/latest/generated/pytorch_lightning.callbacks.EarlyStopping.html#pytorch_lightning.callbacks.EarlyStopping)
+- [Model Checkpoint](https://pytorch-lightning.readthedocs.io/en/latest/generated/pytorch_lightning.callbacks.ModelCheckpoint.html#pytorch_lightning.callbacks.ModelCheckpoint)
+- [Log Media](#logmedia)  
+
+CLI override Examples:
+
+```shell script
+# Disable the LogMedia callback.
+python -m seg_lapa.train "~callbacks.log_media"
+
+# Set the EarlyStopping callback to wait for 20 epochs before terminating.
+python -m seg_lapa.train callbacks.early_stopping.patience=20
+```
+
+#### LogMedia
+
+The LogMedia callback is used to log media, such as images and point clouds, to the logger and to local disk.
+It is also used to save the config files for each run.
+
+Override or modify the `_log_images_to_wandb()` and `_save_results_to_disk()` methods for your application.
+
+
 ### Notes
 #### Absolute imports
 This project is setup as a package. One of the advantages of setting it up as a

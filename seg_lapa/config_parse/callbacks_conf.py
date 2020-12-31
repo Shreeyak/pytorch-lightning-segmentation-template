@@ -51,7 +51,7 @@ class StandardCallbacksConf(CallbacksConf):
             callbacks_list.append(checkpoint)
 
         if self.log_media is not None:
-            log_media = LogMediaConf(**self.log_media).get_callback()
+            log_media = LogMediaConf(**self.log_media).get_callback(logs_dir)
             callbacks_list.append(log_media)
 
         return callbacks_list
