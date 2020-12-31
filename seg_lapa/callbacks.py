@@ -57,7 +57,7 @@ class EarlyStopping(early_stopping.EarlyStopping):
         monitor="Val/mIoU",
         min_delta=0.0005,
         patience=10,
-        verbose=True,
+        verbose=False,
         mode="max",
         strict=True,
     ):
@@ -107,7 +107,7 @@ class LogMedia(Callback):
         period_step: int = 0,
         save_to_disk: bool = True,
         logs_dir: Optional[Path] = None,
-        verbose: bool = True,
+        verbose: bool = False,
     ):
         super().__init__()
         self.max_samples = max_samples
@@ -163,8 +163,8 @@ class LogMedia(Callback):
                         f"Callback {LogMedia.__name__}: Invalid logs_dir: {self.logs_dir}. Please give "
                         f"valid path for logs_dir"
                     )
-                else:
-                    self.logs_dir.mkdir(parents=True, exist_ok=True)
+                # else:
+                #     self.logs_dir.mkdir(parents=True, exist_ok=True)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if not self._should_log_step(trainer, batch_idx):

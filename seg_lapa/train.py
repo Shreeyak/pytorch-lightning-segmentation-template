@@ -1,12 +1,12 @@
 import os
 from collections import deque
 from typing import Any, Dict, List, Optional
+from pathlib import Path
 
 import hydra
 import pytorch_lightning as pl
 import wandb
 from omegaconf import OmegaConf, DictConfig
-from pytorch_lightning.utilities.distributed import rank_zero_only
 
 from seg_lapa import metrics
 from seg_lapa.config_parse import train_conf
@@ -25,6 +25,29 @@ def is_rank_zero():
         return True
 
     return False
+
+
+def generate_run_id(cfg: DictConfig):
+    # Set the run ID: Read from config if resuming training, else generate unique id
+    # TODO: read from cfg if resuming training - get from config dataclass! add method to resume training section.
+    run_id = wandb.util.generate_id()
+    return run_id
+
+
+def create_log_dir(cfg: DictConfig, run_id: str) -> Optional[Path]:
+    """Each run's log dir will have same name as wandb runid"""
+    log_root_dir = get_project_root() / LOGS_DIR
+
+    if is_rank_zero():
+        log_dir = log_root_dir / run_id
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save the input config file to logs dir
+        OmegaConf.save(cfg, log_dir / "train.yaml")
+    else:
+        return log_root_dir / "None"
+
+    return log_dir
 
 
 def fix_seeds(random_seed: Optional[int]) -> None:
@@ -144,27 +167,6 @@ class DeeplabV3plus(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
         return optimizer
-
-
-@rank_zero_only
-def generate_run_id(cfg: DictConfig):
-    # Set the run ID: Read from config if resuming training, else generate unique id
-    # TODO: read from cfg if resuming training - get from config dataclass! add method to resume training section.
-    run_id = wandb.util.generate_id()
-    return run_id
-
-
-@rank_zero_only
-def create_log_dir(cfg: DictConfig, run_id: str):
-    """Each run's log dir will have same name as wandb runid"""
-    log_root_dir = get_project_root() / LOGS_DIR
-    log_dir = log_root_dir / run_id
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save the input config file to logs dir
-    OmegaConf.save(cfg, log_dir / "train.yaml")
-
-    return log_dir
 
 
 @hydra.main(config_path="config", config_name="train")

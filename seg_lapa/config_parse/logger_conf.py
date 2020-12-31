@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional
+from pathlib import Path
 
 import wandb
 from omegaconf import DictConfig, OmegaConf
@@ -33,7 +34,7 @@ class WandbConf(LoggerConf):
     project: str
     run_name: Optional[str]
 
-    def get_logger(self, cfg: DictConfig, run_id: str, save_dir: str) -> pl_loggers.WandbLogger:
+    def get_logger(self, cfg: DictConfig, run_id: str, save_dir: Path) -> pl_loggers.WandbLogger:
         """Returns the Weights and Biases (wandb) logger object (really an wandb Run object)
         The run object corresponds to a single execution of the script and is returned from `wandb.init()`.
 
@@ -52,7 +53,10 @@ class WandbConf(LoggerConf):
 
         cfg_dict = OmegaConf.to_container(cfg, resolve=True)
 
-        wb_logger = pl_loggers.WandbLogger(name=run_name, id=run_id, config=cfg_dict, **args_dict)
+        wb_logger = pl_loggers.WandbLogger(
+            name=run_name, id=run_id, save_dir=str(save_dir), config=cfg_dict, **args_dict
+        )
+
         return wb_logger
 
 
