@@ -12,6 +12,7 @@ checkpoints:
   save_last: null
 
 log_media:
-  max_images_to_log: 10
-  logging_epoch_interval: 1
-  logging_batch_interval: 0
+  max_samples: 10
+  period_epoch: 1
+  period_step: 0
+  save_to_disk: true

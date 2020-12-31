@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Union, List
+from typing import Optional, List
+from pathlib import Path
 
 import pytorch_lightning as pl
 from omegaconf import DictConfig
@@ -15,7 +16,9 @@ class TrainerConf(ABC):
     name: str
 
     @abstractmethod
-    def get_trainer(self, pl_logger: LightningLoggerBase, callbacks: List[Callback]) -> pl.Trainer:
+    def get_trainer(
+        self, pl_logger: LightningLoggerBase, callbacks: List[Callback], default_root_dir: Path
+    ) -> pl.Trainer:
         pass
 
 
@@ -36,8 +39,15 @@ class TrainerConfig(TrainerConf):
     limit_val_batches: float = 1.0
     limit_test_batches: float = 1.0
 
-    def get_trainer(self, pl_logger: LightningLoggerBase, callbacks: List[Callback]) -> pl.Trainer:
-        trainer = pl.Trainer(logger=pl_logger, callbacks=callbacks, **asdict_filtered(self))
+    def get_trainer(
+        self, pl_logger: LightningLoggerBase, callbacks: List[Callback], default_root_dir: Path
+    ) -> pl.Trainer:
+        trainer = pl.Trainer(
+            logger=pl_logger,
+            callbacks=callbacks,
+            default_root_dir=str(default_root_dir),
+            **asdict_filtered(self),
+        )
         return trainer
 
 

@@ -2,5 +2,4 @@
 name: wandb
 entity: cleargrasp2
 project: shrek_debug
-run_name: null  # If None, will generate random name
-save_dir: wandb
+run_name: null # If None, will generate random name
