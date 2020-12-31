@@ -5,6 +5,7 @@ MNIST
 *.tar.gz
 wandb/
 checkpoints/
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
