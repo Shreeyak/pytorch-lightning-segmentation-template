@@ -285,7 +285,7 @@ class LogMedia(Callback):
         return True
 
     @classmethod
-    def get_log_media_structure(cls, log_media_max_batches: int) -> Dict[Mode, deque]:
+    def get_empty_log_media(cls, log_media_max_batches: int) -> Dict[Mode, deque]:
         """Create a data structure for LogMedia"""
         log_media = {
             Mode.TRAIN: deque(maxlen=log_media_max_batches),

@@ -52,7 +52,7 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Save predictions to be logged. Returning images from _step methods is expensive.
         # Fill new data when existing data is consumed
-        self.log_media: Dict[Mode, deque] = LogMedia.get_log_media_structure(log_media_max_batches)
+        self.log_media: Dict[Mode, deque] = LogMedia.get_empty_log_media(log_media_max_batches)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
