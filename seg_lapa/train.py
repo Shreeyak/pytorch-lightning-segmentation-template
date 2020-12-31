@@ -50,9 +50,9 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
         self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
 
-        # Save predictions to be logged. Returning images from _step methods is expensive.
-        # Fill new data when existing data is consumed
-        self.log_media: Dict[Mode, deque] = LogMedia.get_empty_log_media(log_media_max_batches)
+        # Returning images from _step methods is memory-expensive. Save predictions to be logged in a circular queue
+        # and consume in a callback.
+        self.log_media: Dict[Mode, deque] = LogMedia.get_empty_data_queue(log_media_max_batches)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -169,8 +169,8 @@ def create_log_dir(cfg: DictConfig, run_id: str):
 
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
-    if is_rank_zero():
-        print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
+    # if is_rank_zero():
+    #     print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
 
     config = train_conf.parse_config(cfg)
     if is_rank_zero():
