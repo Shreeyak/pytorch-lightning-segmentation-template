@@ -24,6 +24,7 @@ from seg_lapa.config_parse import (
 @dataclass(frozen=True)
 class TrainConf:
     random_seed: Optional[int]
+    logs_root_dir: str
     dataset: DatasetConf
     optimizer: OptimConf
     model: ModelConf
