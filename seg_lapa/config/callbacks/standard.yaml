@@ -2,14 +2,17 @@
 name: standard
 
 early_stopping:
+  monitor: "Val/mIoU"
   min_delta: 0.0005
   patience: 10
+  mode: "max"
 
 checkpoints:
-  monitor: 'Val/mIoU'
-  mode: 'max'
+  monitor: "Val/mIoU"
+  mode: "max"
   period: 1
   save_last: null
+  save_top_k: null
 
 log_media:
   max_samples: 10
