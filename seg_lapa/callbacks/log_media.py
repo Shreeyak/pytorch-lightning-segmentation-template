@@ -154,52 +154,36 @@ class LogMedia(Callback):
 
         self.valid_logger = True if self._logger_is_supported(trainer) else False
 
-        # TODO: Train and test queues are still empty?
+        # TODO: Add epoch and step identifier to save on disk files
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        if not self._should_log_step(trainer, batch_idx):
-            return
-
-        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
-        self._log_images_to_wandb(trainer, pred_data, Mode.TRAIN)
+        if self._should_log_step(trainer, batch_idx):
+            self._log_results(trainer, pl_module, Mode.TRAIN)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        if not self._should_log_step(trainer, batch_idx):
-            return
-
-        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
-        self._log_images_to_wandb(trainer, pred_data, Mode.VAL)
+        if self._should_log_step(trainer, batch_idx):
+            self._log_results(trainer, pl_module, Mode.VAL)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        if not self._should_log_step(trainer, batch_idx):
-            return
-
-        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
-        self._log_images_to_wandb(trainer, pred_data, Mode.TEST)
+        if self._should_log_step(trainer, batch_idx):
+            self._log_results(trainer, pl_module, Mode.TEST)
 
     def on_train_epoch_end(self, trainer, pl_module, outputs):
-        if not self._should_log_epoch(trainer):
-            return
-
-        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
-        self._log_images_to_wandb(trainer, pred_data, Mode.TRAIN)
-        self._save_results_to_disk(pred_data, Mode.TRAIN)
+        if self._should_log_epoch(trainer):
+            self._log_results(trainer, pl_module, Mode.TRAIN)
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        if not self._should_log_epoch(trainer):
-            return
-
-        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
-        self._log_images_to_wandb(trainer, pred_data, Mode.VAL)
-        self._save_results_to_disk(pred_data, Mode.VAL)
+        if self._should_log_epoch(trainer):
+            self._log_results(trainer, pl_module, Mode.VAL)
 
     def on_test_epoch_end(self, trainer, pl_module):
-        if not self._should_log_epoch(trainer):
-            return
+        if self._should_log_epoch(trainer):
+            self._log_results(trainer, pl_module, Mode.TEST)
 
-        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
-        self._log_images_to_wandb(trainer, pred_data, Mode.TEST)
-        self._save_results_to_disk(pred_data, Mode.TEST)
+    def _log_results(self, trainer, pl_module, mode: Mode):
+        pred_data = self._get_preds_from_lightningmodule(pl_module, mode)
+        self._log_images_to_wandb(trainer, pred_data, mode)
+        self._save_results_to_disk(pred_data, mode)
 
     def _should_log_epoch(self, trainer):
         if trainer.running_sanity_check:
