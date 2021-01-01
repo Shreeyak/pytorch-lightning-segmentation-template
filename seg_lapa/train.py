@@ -1,6 +1,5 @@
 import os
-from collections import deque
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from pathlib import Path
 
 import hydra
@@ -13,7 +12,7 @@ from seg_lapa.config_parse import train_conf
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.utils.path_check import get_project_root
-from seg_lapa.callbacks.log_media import Mode, LogMedia
+from seg_lapa.callbacks.log_media import Mode, LogMediaQueue, LogMedia
 
 LOGS_DIR = "logs"
 
@@ -74,8 +73,8 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
 
         # Returning images from _step methods is memory-expensive. Save predictions to be logged in a circular queue
-        # and consume in a callback.
-        self.log_media: Dict[Mode, deque] = LogMedia.get_empty_data_queue(log_media_max_batches)
+        # to be consumed in a callback.
+        self.log_media: LogMediaQueue = LogMediaQueue(log_media_max_batches)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -108,7 +107,7 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Returning images is expensive - All the batches are accumulated for _epoch_end().
         # Save the latst predictions to be logged in an attr. They will be consumed by the LogMedia callback.
-        self.log_media[Mode.TRAIN].append({"inputs": inputs, "labels": labels, "preds": predictions})
+        self.log_media.add({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TRAIN)
 
         return {"loss": loss}
 
@@ -125,7 +124,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_val(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media[Mode.VAL].append({"inputs": inputs, "labels": labels, "preds": predictions})
+        self.log_media.add({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.VAL)
 
         return {"val_loss": loss}
 
@@ -142,7 +141,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_test(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media[Mode.TEST].append({"inputs": inputs, "labels": labels, "preds": predictions})
+        self.log_media.add({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TEST)
 
         return {"test_loss": loss}
 

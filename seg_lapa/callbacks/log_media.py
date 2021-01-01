@@ -1,6 +1,6 @@
 from collections import deque
 from enum import Enum
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -22,6 +22,38 @@ class Mode(Enum):
     TEST = "Test"
 
 
+class LogMediaQueue:
+    """Holds a circular queue for each of train/val/test modes, each of which contain the latest N batches of data"""
+
+    def __init__(self, max_batches: int = 3):
+        self.max_batches = max_batches
+        self.log_media = {
+            Mode.TRAIN: deque(maxlen=self.max_batches),
+            Mode.VAL: deque(maxlen=self.max_batches),
+            Mode.TEST: deque(maxlen=self.max_batches),
+        }
+
+    def clear(self):
+        """Clear all queues"""
+        for mode, queue in self.log_media.items():
+            queue.clear()
+
+    def add(self, data: Any, mode: Mode):
+        """Add a batch of data to a queue. Mode selects train/val/test queue"""
+        self.log_media[mode].append(data)
+
+    def get_data(self, mode: Mode) -> List[Any]:
+        """Fetch all the batches available in the queue"""
+        data_r = []
+        while len(self.log_media[mode]) > 0:
+            data_r.append(self.log_media[mode].popleft())
+
+        return data_r
+
+    def get_len(self, mode: Mode) -> int:
+        return len(self.log_media[mode])
+
+
 class LogMedia(Callback):
     """Logs model output images and other media to weights and biases
 
@@ -34,7 +66,7 @@ class LogMedia(Callback):
         import pytorch_lightning as pl
 
         class MyModel(pl.LightningModule):
-            self.log_media: Dict[Mode, deque] = LogMedia.get_empty_data_queue(log_media_max_batches)
+            self.log_media: LogMediaQueue = LogMediaQueue(max_batches)
 
         trainer = pl.Trainer(callbacks=[LogMedia()])
 
@@ -79,17 +111,6 @@ class LogMedia(Callback):
             10: "hair",
         }
 
-    # TODO: Replace this with a proper data-structure. Create class with methods to add/read each queue
-    @classmethod
-    def get_empty_data_queue(cls, log_media_max_batches: int) -> Dict[Mode, deque]:
-        """Create a data structure for LogMedia"""
-        log_media = {
-            Mode.TRAIN: deque(maxlen=log_media_max_batches),
-            Mode.VAL: deque(maxlen=log_media_max_batches),
-            Mode.TEST: deque(maxlen=log_media_max_batches),
-        }
-        return log_media
-
     def setup(self, trainer, pl_module, stage: str):
         # This callback requires a ``.log_media`` attribute in LightningModule
         req_attr = "log_media"
@@ -98,10 +119,13 @@ class LogMedia(Callback):
                 f"{pl_module.__class__.__name__}.{req_attr} not found. The {LogMedia.__name__} "
                 f"callback requires the LightningModule to have the {req_attr} attribute."
             )
+        if not isinstance(pl_module.log_media, LogMediaQueue):
+            raise AttributeError(f"{pl_module.__class__.__name__}.{req_attr} must be of type {LogMediaQueue.__name__}")
 
         if self.verbose:
             pl_module.print(f"Initializing Callback {LogMedia.__name__}")
 
+        # TODO: Create log dir within callback only. Remove creation of dir from main. Also, use pl's log dir structure.
         if trainer.is_global_zero:
             if self.save_to_disk:
                 if self.logs_dir is None:
@@ -179,12 +203,9 @@ class LogMedia(Callback):
 
     def _get_preds_from_lightningmodule(self, pl_module, mode: Mode):
         # Fetch latest N batches from the data queue in LightningModule
-        media_data = []
-        log_media = pl_module.log_media[mode]
-        while len(log_media) > 0:
-            media_data.append(log_media.popleft())
-        if len(media_data) == 0:
-            return None  # Queue empty
+        if pl_module.log_media.get_len(mode) == 0:  # Queue empty
+            return
+        media_data = pl_module.log_media.get_data(mode)
 
         inputs = torch.cat([x["inputs"] for x in media_data], dim=0)
         labels = torch.cat([x["labels"] for x in media_data], dim=0)
@@ -257,8 +278,8 @@ class LogMedia(Callback):
             mask_img = wandb.Image(
                 img,
                 masks={
-                    "predictions": {"mask_data": pred, "class_labels_lapa": self.class_labels_lapa},
-                    "groud_truth": {"mask_data": lbl, "class_labels_lapa": self.class_labels_lapa},
+                    "predictions": {"mask_data": pred, "class_labels": self.class_labels_lapa},
+                    "groud_truth": {"mask_data": lbl, "class_labels": self.class_labels_lapa},
                 },
             )
             mask_list.append(mask_img)
