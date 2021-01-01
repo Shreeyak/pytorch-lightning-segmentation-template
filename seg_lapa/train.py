@@ -13,7 +13,7 @@ from seg_lapa.config_parse import train_conf
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.utils.path_check import get_project_root
-from seg_lapa.callbacks import Mode, LogMedia
+from seg_lapa.callbacks.log_media import Mode, LogMedia
 
 LOGS_DIR = "logs"
 
