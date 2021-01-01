@@ -37,7 +37,7 @@ class StandardCallbacksConf(CallbacksConf):
     checkpoints: Optional[Dict] = None
     log_media: Optional[Dict] = None
 
-    def get_callbacks_list(self, logs_dir) -> List[Callback]:
+    def get_callbacks_list(self, logs_dir: str, cfg: DictConfig) -> List[Callback]:
         """Get all available callbacks and the Callback Objects in list
         If a callback's entry is not present in the config file, it'll not be output in the list
         """
@@ -51,7 +51,7 @@ class StandardCallbacksConf(CallbacksConf):
             callbacks_list.append(checkpoint)
 
         if self.log_media is not None:
-            log_media = LogMediaConf(**self.log_media).get_callback(logs_dir)
+            log_media = LogMediaConf(**self.log_media).get_callback(logs_dir, cfg)
             callbacks_list.append(log_media)
 
         return callbacks_list

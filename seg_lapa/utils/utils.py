@@ -1,4 +1,5 @@
 import os
+import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -27,20 +28,25 @@ def generate_run_id(cfg: DictConfig):
     return run_id
 
 
-def create_log_dir(cfg: DictConfig, run_id: str) -> Optional[Path]:
+def create_log_dir(run_id: str, logs_root_dir: str) -> str:
     """Each run's log dir will have same name as wandb runid"""
-    log_root_dir = get_project_root() / LOGS_DIR
+    logs_root_dir = Path(logs_root_dir)
+    if not logs_root_dir.is_absolute():
+        # Any relative path is considered to be relative to the project root dir
+        logs_root_dir = get_project_root() / logs_root_dir
 
-    if is_rank_zero():
-        log_dir = log_root_dir / run_id
-        log_dir.mkdir(parents=True, exist_ok=True)
+    logs_root_dir = logs_root_dir / LOGS_DIR
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
+    exp_dir = logs_root_dir / f"{timestamp}-{run_id}"
 
-        # Save the input config file to logs dir
-        OmegaConf.save(cfg, log_dir / "train.yaml")
-    else:
-        return log_root_dir / "None"
+    # if is_rank_zero():
+    #     log_dir = log_root_dir / run_id
+    #     log_dir.mkdir(parents=True, exist_ok=True)
+    #
+    #     # Save the input config file to logs dir
+    #     OmegaConf.save(cfg, log_dir / "train.yaml")
 
-    return log_dir
+    return exp_dir
 
 
 def fix_seeds(random_seed: Optional[int]) -> None:

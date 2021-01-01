@@ -1,6 +1,7 @@
 """Dataclasses just to initialize and return Callback objects"""
 from typing import Optional
 
+from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping
 
@@ -38,5 +39,5 @@ class LogMediaConf:
     period_step: Optional[int] = 0
     save_to_disk: bool = False
 
-    def get_callback(self, logs_dir) -> Callback:
+    def get_callback(self, logs_dir: str, cfg: DictConfig) -> Callback:
         return LogMedia(logs_dir=logs_dir, **asdict_filtered(self))

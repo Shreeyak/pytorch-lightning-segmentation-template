@@ -38,19 +38,20 @@ class LogMediaQueue:
         for mode, queue in self.log_media.items():
             queue.clear()
 
-    def add(self, data: Any, mode: Mode):
+    def append(self, data: Any, mode: Mode):
         """Add a batch of data to a queue. Mode selects train/val/test queue"""
         self.log_media[mode].append(data)
 
-    def get_data(self, mode: Mode) -> List[Any]:
-        """Fetch all the batches available in the queue"""
+    def fetch(self, mode: Mode) -> List[Any]:
+        """Fetch all the batches available in a queue. Empties the selected queue"""
         data_r = []
         while len(self.log_media[mode]) > 0:
             data_r.append(self.log_media[mode].popleft())
 
         return data_r
 
-    def get_len(self, mode: Mode) -> int:
+    def len(self, mode: Mode) -> int:
+        """Get the number of elements in a queue"""
         return len(self.log_media[mode])
 
 
@@ -84,7 +85,7 @@ class LogMedia(Callback):
         period_epoch: int = 1,
         period_step: int = 0,
         save_to_disk: bool = True,
-        logs_dir: Optional[Path] = None,
+        logs_dir: Optional[str] = None,
         verbose: bool = False,
     ):
         super().__init__()
@@ -159,12 +160,14 @@ class LogMedia(Callback):
             return
 
         self._log_images_to_wandb(trainer, pl_module, Mode.TRAIN)
+        self._save_results_to_disk(pl_module, Mode.TRAIN)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         if not self._should_log_epoch(trainer):
             return
 
         self._log_images_to_wandb(trainer, pl_module, Mode.VAL)
+        self._save_results_to_disk(pl_module, Mode.VAL)
 
     def on_test_epoch_end(self, trainer, pl_module):
         if not self._should_log_epoch(trainer):
@@ -203,9 +206,9 @@ class LogMedia(Callback):
 
     def _get_preds_from_lightningmodule(self, pl_module, mode: Mode):
         # Fetch latest N batches from the data queue in LightningModule
-        if pl_module.log_media.get_len(mode) == 0:  # Queue empty
+        if pl_module.log_media.len(mode) == 0:  # Queue empty
             return
-        media_data = pl_module.log_media.get_data(mode)
+        media_data = pl_module.log_media.fetch(mode)
 
         inputs = torch.cat([x["inputs"] for x in media_data], dim=0)
         labels = torch.cat([x["labels"] for x in media_data], dim=0)
@@ -228,6 +231,7 @@ class LogMedia(Callback):
         # Get the latest batches from the data queue in LightningModule
         data_r = self._get_preds_from_lightningmodule(pl_module, mode)
         if data_r is None:
+            print(f"No data in the {mode} queue! Device: {pl_module.device}")
             return
         else:
             inputs, labels, preds = data_r
@@ -255,9 +259,9 @@ class LogMedia(Callback):
                 grid_results[idy * img_h : (idy + 1) * img_h, idx * img_w : (idx + 1) * img_w, :] = results_l[idx + idy]
 
         # Save collage
-        fname = str(self.logs_dir / f"results.{mode.name.lower()}.png")
+        fname = Path(self.logs_dir) / f"results.{mode.name.lower()}.png"
         pl_module.print(f"Savings results to disk: {fname}")
-        cv2.imwrite(fname, cv2.cvtColor(grid_results, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(str(fname), cv2.cvtColor(grid_results, cv2.COLOR_RGB2BGR))
 
     @rank_zero_only
     def _log_images_to_wandb(self, trainer, pl_module, mode: Mode = Mode.TRAIN):

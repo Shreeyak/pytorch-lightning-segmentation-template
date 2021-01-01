@@ -61,7 +61,14 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Returning images is expensive - All the batches are accumulated for _epoch_end().
         # Save the latst predictions to be logged in an attr. They will be consumed by the LogMedia callback.
-        self.log_media.add({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TRAIN)
+        self.log_media.append(
+            {
+                "inputs": inputs.clone().detach(),
+                "labels": labels.clone().detach(),
+                "preds": predictions.clone().detach(),
+            },
+            Mode.TRAIN,
+        )
 
         return {"loss": loss}
 
@@ -78,7 +85,14 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_val(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media.add({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.VAL)
+        self.log_media.append(
+            {
+                "inputs": inputs.clone().detach(),
+                "labels": labels.clone().detach(),
+                "preds": predictions.clone().detach(),
+            },
+            Mode.VAL,
+        )
 
         return {"val_loss": loss}
 
@@ -95,7 +109,14 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_test(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media.add({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TEST)
+        self.log_media.append(
+            {
+                "inputs": inputs.clone().detach(),
+                "labels": labels.clone().detach(),
+                "preds": predictions.clone().detach(),
+            },
+            Mode.TEST,
+        )
 
         return {"test_loss": loss}
 
@@ -133,11 +154,11 @@ def main(cfg: DictConfig):
 
     utils.fix_seeds(config.random_seed)
     run_id = utils.generate_run_id(cfg)
-    log_dir = utils.create_log_dir(cfg, run_id)
+    exp_dir = utils.create_log_dir(run_id, config.logs_root_dir)
 
-    wb_logger = config.logger.get_logger(cfg, run_id, get_project_root() / utils.LOGS_DIR)
-    callbacks = config.callbacks.get_callbacks_list(log_dir)
-    trainer = config.trainer.get_trainer(wb_logger, callbacks, get_project_root())
+    wb_logger = config.logger.get_logger(cfg, run_id, config.logs_root_dir)
+    callbacks = config.callbacks.get_callbacks_list(exp_dir, cfg)
+    trainer = config.trainer.get_trainer(wb_logger, callbacks, config.logs_root_dir)
     model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
 
