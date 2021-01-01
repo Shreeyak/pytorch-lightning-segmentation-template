@@ -93,13 +93,20 @@ python -m seg_lapa.train callbacks.early_stopping.patience=20
 #### LogMedia
 
 The LogMedia callback is used to log media, such as images and point clouds, to the logger and to local disk.
-It is also used to save the config files for each run.
+It is also used to save the config files for each run. The `LightningModule` adds data to a queue, which is
+fetched within the `LogMedia` callback and logged to the logger and/or disk.
 
-Override or modify the `_log_images_to_wandb()` and `_save_results_to_disk()` methods for your application.
+To customize this callback for your application, override or modify the following methods:
+
+ - `LogMedia._get_preds_from_lightningmodule()`
+ - `LogMedia._log_images_to_wandb()`
+ - `LogMedia._save_results_to_disk()`
+
+LogMedia currently supports the Weights and Biases logger only.
 
 #### EarlyStopping
 
-Here's some tips on how to configure early stopping:
+This is PTL's built-in callback. Here's some tips on how to configure early stopping:
 
 ```
 Args:

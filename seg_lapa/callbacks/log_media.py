@@ -1,4 +1,5 @@
 from collections import deque
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -7,7 +8,7 @@ import torch
 import wandb
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning import loggers as pl_loggers
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
 # Specific to logging media to disk
 import cv2
@@ -22,15 +23,27 @@ class Mode(Enum):
     TEST = "Test"
 
 
+@dataclass
+class PredData:
+    """Holds the data read and converted from the LightningModule's LogMediaQueue"""
+
+    inputs: np.ndarray
+    labels: np.ndarray
+    preds: np.ndarray
+
+
 class LogMediaQueue:
     """Holds a circular queue for each of train/val/test modes, each of which contain the latest N batches of data"""
 
-    def __init__(self, max_batches: int = 3):
-        self.max_batches = max_batches
+    def __init__(self, max_len: int = 3):
+        if max_len < 1:
+            raise ValueError(f"Queue must be length >= 1. Given: {max_len}")
+
+        self.max_len = max_len
         self.log_media = {
-            Mode.TRAIN: deque(maxlen=self.max_batches),
-            Mode.VAL: deque(maxlen=self.max_batches),
-            Mode.TEST: deque(maxlen=self.max_batches),
+            Mode.TRAIN: deque(maxlen=self.max_len),
+            Mode.VAL: deque(maxlen=self.max_len),
+            Mode.TEST: deque(maxlen=self.max_len),
         }
 
     def clear(self):
@@ -67,7 +80,7 @@ class LogMedia(Callback):
         import pytorch_lightning as pl
 
         class MyModel(pl.LightningModule):
-            self.log_media: LogMediaQueue = LogMediaQueue(max_batches)
+            self.log_media: LogMediaQueue = LogMediaQueue(max_len)
 
         trainer = pl.Trainer(callbacks=[LogMedia()])
 
@@ -78,6 +91,8 @@ class LogMedia(Callback):
         save_to_disk (bool): If True, save results to disk
         logs_dir (str or Path): Path to directory where results will be saved
     """
+
+    SUPPORTED_LOGGERS = [pl_loggers.WandbLogger]
 
     def __init__(
         self,
@@ -95,7 +110,7 @@ class LogMedia(Callback):
         self.save_to_disk = save_to_disk
         self.logs_dir = logs_dir
         self.verbose = verbose
-        self.flag_warn_once = False
+        self.valid_logger = False
 
         # Project-specific fields
         self.class_labels_lapa = {
@@ -126,7 +141,7 @@ class LogMedia(Callback):
         if self.verbose:
             pl_module.print(f"Initializing Callback {LogMedia.__name__}")
 
-        # TODO: Create log dir within callback only. Remove creation of dir from main. Also, use pl's log dir structure.
+        # TODO: Create log dir within callback.
         if trainer.is_global_zero:
             if self.save_to_disk:
                 if self.logs_dir is None:
@@ -137,44 +152,54 @@ class LogMedia(Callback):
                 # else:
                 #     self.logs_dir.mkdir(parents=True, exist_ok=True)
 
+        self.valid_logger = True if self._logger_is_supported(trainer) else False
+
+        # TODO: Train and test queues are still empty?
+
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if not self._should_log_step(trainer, batch_idx):
             return
 
-        self._log_images_to_wandb(trainer, pl_module, Mode.TRAIN)
+        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
+        self._log_images_to_wandb(trainer, pred_data, Mode.TRAIN)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if not self._should_log_step(trainer, batch_idx):
             return
 
-        self._log_images_to_wandb(trainer, pl_module, Mode.VAL)
+        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
+        self._log_images_to_wandb(trainer, pred_data, Mode.VAL)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if not self._should_log_step(trainer, batch_idx):
             return
 
-        self._log_images_to_wandb(trainer, pl_module, Mode.TEST)
+        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
+        self._log_images_to_wandb(trainer, pred_data, Mode.TEST)
 
     def on_train_epoch_end(self, trainer, pl_module, outputs):
         if not self._should_log_epoch(trainer):
             return
 
-        self._log_images_to_wandb(trainer, pl_module, Mode.TRAIN)
-        self._save_results_to_disk(pl_module, Mode.TRAIN)
+        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
+        self._log_images_to_wandb(trainer, pred_data, Mode.TRAIN)
+        self._save_results_to_disk(pred_data, Mode.TRAIN)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         if not self._should_log_epoch(trainer):
             return
 
-        self._log_images_to_wandb(trainer, pl_module, Mode.VAL)
-        self._save_results_to_disk(pl_module, Mode.VAL)
+        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
+        self._log_images_to_wandb(trainer, pred_data, Mode.VAL)
+        self._save_results_to_disk(pred_data, Mode.VAL)
 
     def on_test_epoch_end(self, trainer, pl_module):
         if not self._should_log_epoch(trainer):
             return
 
-        self._log_images_to_wandb(trainer, pl_module, Mode.TEST)
-        self._save_results_to_disk(pl_module, Mode.TEST)
+        pred_data = self._get_preds_from_lightningmodule(pl_module, Mode.TRAIN)
+        self._log_images_to_wandb(trainer, pred_data, Mode.TEST)
+        self._save_results_to_disk(pred_data, Mode.TEST)
 
     def _should_log_epoch(self, trainer):
         if trainer.running_sanity_check:
@@ -190,24 +215,27 @@ class LogMedia(Callback):
             return False
         return True
 
-    def _logger_is_wandb(self, trainer):
+    @rank_zero_only
+    def _logger_is_supported(self, trainer):
         """This callback only works with wandb logger"""
-        if not isinstance(trainer.logger, pl_loggers.WandbLogger):
-            if not self.flag_warn_once:
-                # Give warning print only once to prevent clutter.
-                print(
-                    f"WARN: LogMedia only works with wandb logger. Current logger: {trainer.logger}. "
-                    f"Will not log any media to wandb this run"
-                )
-                self.flag_warn_once = True
-            return False
+        for logger_type in self.SUPPORTED_LOGGERS:
+            if isinstance(trainer.logger, logger_type):
+                return True
 
-        return True
+        rank_zero_warn(
+            f"WARN: Unsupported logger, will not log any media to logger this run."
+            f" Supported loggers: {[sup_log.__name__ for sup_log in self.SUPPORTED_LOGGERS]}. Given: {trainer.logger}."
+        )
+        return False
 
-    def _get_preds_from_lightningmodule(self, pl_module, mode: Mode):
-        # Fetch latest N batches from the data queue in LightningModule
-        if pl_module.log_media.len(mode) == 0:  # Queue empty
-            return
+    @rank_zero_only
+    def _get_preds_from_lightningmodule(self, pl_module, mode: Mode) -> Optional[PredData]:
+        """Fetch latest N batches from the data queue in LightningModule.
+        Process the tensors as required (example, convert to numpy arrays and scale)
+        """
+        if pl_module.log_media.len(mode) == 0:  # Empty queue
+            return None
+
         media_data = pl_module.log_media.fetch(mode)
 
         inputs = torch.cat([x["inputs"] for x in media_data], dim=0)
@@ -220,21 +248,21 @@ class LogMedia(Callback):
         labels = labels[: self.max_samples].detach().cpu().numpy().astype(np.uint8)
         preds = preds[: self.max_samples].detach().cpu().numpy().astype(np.uint8)
 
-        return inputs, labels, preds
+        out = PredData(inputs=inputs, labels=labels, preds=preds)
+
+        return out
 
     @rank_zero_only
-    def _save_results_to_disk(self, pl_module, mode: Mode):
+    def _save_results_to_disk(self, pred_data: Optional[PredData], mode: Mode):
         """For a given mode (train/val/test), save the results to disk"""
         if not self.save_to_disk:
             return
+        if pred_data is None:  # Empty queue
+            rank_zero_warn(f"Empty queue! Mode: {mode}")
+            return
 
         # Get the latest batches from the data queue in LightningModule
-        data_r = self._get_preds_from_lightningmodule(pl_module, mode)
-        if data_r is None:
-            print(f"No data in the {mode} queue! Device: {pl_module.device}")
-            return
-        else:
-            inputs, labels, preds = data_r
+        inputs, labels, preds = pred_data.inputs, pred_data.labels, pred_data.preds
 
         # Colorize labels and predictions
         label2rgb = LabelToRGB()
@@ -260,21 +288,18 @@ class LogMedia(Callback):
 
         # Save collage
         fname = Path(self.logs_dir) / f"results.{mode.name.lower()}.png"
-        pl_module.print(f"Savings results to disk: {fname}")
         cv2.imwrite(str(fname), cv2.cvtColor(grid_results, cv2.COLOR_RGB2BGR))
 
     @rank_zero_only
-    def _log_images_to_wandb(self, trainer, pl_module, mode: Mode = Mode.TRAIN):
+    def _log_images_to_wandb(self, trainer, pred_data: Optional[PredData], mode: Mode):
         """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
-        if not self._logger_is_wandb(trainer):
+        if not self.valid_logger:
+            return
+        if pred_data is None:  # Empty queue
             return
 
         # Get the latest batches from the data queue in LightningModule
-        data_r = self._get_preds_from_lightningmodule(pl_module, mode)
-        if data_r is None:
-            return
-        else:
-            inputs, labels, preds = data_r
+        inputs, labels, preds = pred_data.inputs, pred_data.labels, pred_data.preds
 
         # Create wandb Image for logging
         mask_list = []
