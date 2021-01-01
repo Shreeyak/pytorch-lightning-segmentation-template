@@ -38,6 +38,7 @@ def parse_config(cfg: DictConfig) -> TrainConf:
     """Parses the config file read from hydra to populate the TrainConfig dataclass"""
     config = TrainConf(
         random_seed=cfg.random_seed,
+        logs_root_dir=cfg.logs_root_dir,
         dataset=dataset_conf.validate_config_group(cfg.dataset),
         model=model_conf.validate_config_group(cfg.model),
         optimizer=optimizer_conf.validate_config_group(cfg.optimizer),
