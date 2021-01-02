@@ -44,4 +44,4 @@ class LogMediaConf:
     verbose: bool = False
 
     def get_callback(self, logs_dir: str, cfg: DictConfig) -> Callback:
-        return LogMedia(logs_dir=logs_dir, **asdict_filtered(self))
+        return LogMedia(logs_dir=logs_dir, cfg=cfg, **asdict_filtered(self))

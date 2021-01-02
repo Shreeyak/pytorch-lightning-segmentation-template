@@ -1,20 +1,23 @@
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import torch
 import wandb
-from pytorch_lightning.callbacks import Callback
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_only, rank_zero_warn
 
-# Specific to logging media to disk
+# Project-specific imports for logging media to disk
 import cv2
 import math
 from pathlib import Path
 from seg_lapa.utils.segmentation_label2rgb import LabelToRGB, Palette
+
+CONFIG_FNAME = "config.yaml"
 
 
 class Mode(Enum):
@@ -87,6 +90,8 @@ class LogMedia(Callback):
         trainer = pl.Trainer(callbacks=[LogMedia()])
 
     Args:
+        cfg (omegaconf.DictConfig, optional): The hydra cfg file given to run. If passed, It will be saved to the
+                                              logs dir.
         period_epoch (int): If > 0, log every N epochs
         period_step (int): If > 0, log every N steps (i.e. batches)
         max_samples (int): Max number of data samples to log
@@ -100,6 +105,7 @@ class LogMedia(Callback):
 
     def __init__(
         self,
+        cfg: DictConfig = None,
         max_samples: int = 10,
         period_epoch: int = 1,
         period_step: int = 0,
@@ -109,6 +115,7 @@ class LogMedia(Callback):
         verbose: bool = False,
     ):
         super().__init__()
+        self.cfg = cfg
         self.max_samples = max_samples
         self.period_epoch = period_epoch
         self.period_step = period_step
@@ -121,6 +128,9 @@ class LogMedia(Callback):
             self.logs_dir = Path(logs_dir) if self.save_to_disk else None
         except TypeError as e:
             raise ValueError(f"Invalid logs_dir: {logs_dir}. \n{e}")
+
+        if not OmegaConf.is_config(self.cfg):
+            raise ValueError(f"Config file not of type {DictConfig}. Given: {type(cfg)}")
 
         # Project-specific fields
         self.class_labels_lapa = {
@@ -153,8 +163,6 @@ class LogMedia(Callback):
 
         self._create_log_dir()
         self.valid_logger = True if self._logger_is_supported(trainer) else False
-
-        # TODO: SAVE CFG TO LOG DIR
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_log_step(trainer, batch_idx):
@@ -201,7 +209,13 @@ class LogMedia(Callback):
 
     @rank_zero_only
     def _create_log_dir(self):
+        if not self.save_to_disk:
+            return
+
         self.logs_dir.mkdir(parents=True, exist_ok=True)
+        if self.cfg is not None:
+            fname = self.logs_dir / CONFIG_FNAME
+            OmegaConf.save(config=self.cfg, f=fname, resolve=True)
 
     @rank_zero_only
     def _logger_is_supported(self, trainer):

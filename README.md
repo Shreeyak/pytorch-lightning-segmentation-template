@@ -102,7 +102,11 @@ To customize this callback for your application, override or modify the followin
  - `LogMedia._log_images_to_wandb()`
  - `LogMedia._save_results_to_disk()`
 
-LogMedia currently supports the Weights and Biases logger only.
+##### Notes:
+
+- LogMedia currently supports the Weights and Biases logger only.
+- By default, LogMedia only saves the latest samples to disk. To save the results from each step/epoch, pass
+`save_latest_only=False`.
 
 #### EarlyStopping
 
