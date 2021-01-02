@@ -42,7 +42,7 @@ def generate_log_dir_path(config: TrainConf) -> Path:
         exp_dir = logs_root_dir / f"{timestamp}"
     elif isinstance(config.logger, WandbConf):
         run_id = config.logger.get_run_id()
-        exp_dir = logs_root_dir / f"{timestamp}-{run_id}"
+        exp_dir = logs_root_dir / f"{timestamp}_{run_id}"
     else:
         raise NotImplementedError(f"Generating log dir not implemented for logger: {config.logger}")
 
