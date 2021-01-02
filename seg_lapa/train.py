@@ -61,14 +61,7 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Returning images is expensive - All the batches are accumulated for _epoch_end().
         # Save the latst predictions to be logged in an attr. They will be consumed by the LogMedia callback.
-        self.log_media.append(
-            {
-                "inputs": inputs.clone().detach(),
-                "labels": labels.clone().detach(),
-                "preds": predictions.clone().detach(),
-            },
-            Mode.TRAIN,
-        )
+        self.log_media.append({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TRAIN)
 
         return {"loss": loss}
 
@@ -85,14 +78,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_val(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media.append(
-            {
-                "inputs": inputs.clone().detach(),
-                "labels": labels.clone().detach(),
-                "preds": predictions.clone().detach(),
-            },
-            Mode.VAL,
-        )
+        self.log_media.append({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.VAL)
 
         return {"val_loss": loss}
 
@@ -109,14 +95,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_test(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media.append(
-            {
-                "inputs": inputs.clone().detach(),
-                "labels": labels.clone().detach(),
-                "preds": predictions.clone().detach(),
-            },
-            Mode.TEST,
-        )
+        self.log_media.append({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TEST)
 
         return {"test_loss": loss}
 

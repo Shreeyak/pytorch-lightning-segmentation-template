@@ -15,6 +15,7 @@ class EarlyStopConf:
     min_delta: float
     patience: int
     mode: str
+    verbose: bool = False
 
     def get_callback(self) -> Callback:
         return EarlyStopping(**asdict_filtered(self))
@@ -27,6 +28,7 @@ class CheckpointConf:
     save_last: Optional[bool]
     period: int
     save_top_k: Optional[int]
+    verbose: bool = False
 
     def get_callback(self, logs_dir) -> Callback:
         return ModelCheckpoint(dirpath=logs_dir, **asdict_filtered(self))
@@ -35,9 +37,11 @@ class CheckpointConf:
 @dataclass(frozen=True)
 class LogMediaConf:
     max_samples: int
-    period_epoch: Optional[int] = 0
-    period_step: Optional[int] = 0
-    save_to_disk: bool = False
+    period_epoch: int
+    period_step: int
+    save_to_disk: bool
+    save_latest_only: bool
+    verbose: bool = False
 
     def get_callback(self, logs_dir: str, cfg: DictConfig) -> Callback:
         return LogMedia(logs_dir=logs_dir, **asdict_filtered(self))

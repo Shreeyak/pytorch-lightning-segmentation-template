@@ -51,10 +51,12 @@ class LogMediaQueue:
         for mode, queue in self.log_media.items():
             queue.clear()
 
+    @rank_zero_only
     def append(self, data: Any, mode: Mode):
         """Add a batch of data to a queue. Mode selects train/val/test queue"""
         self.log_media[mode].append(data)
 
+    @rank_zero_only
     def fetch(self, mode: Mode) -> List[Any]:
         """Fetch all the batches available in a queue. Empties the selected queue"""
         data_r = []
@@ -87,9 +89,11 @@ class LogMedia(Callback):
     Args:
         period_epoch (int): If > 0, log every N epochs
         period_step (int): If > 0, log every N steps (i.e. batches)
-        max_samples (int): Max number of images to log
+        max_samples (int): Max number of data samples to log
         save_to_disk (bool): If True, save results to disk
+        save_latest_only (only): If True, will overwrite prev results at each period.
         logs_dir (str or Path): Path to directory where results will be saved
+        verbose (bool): Whether to print additional information.
     """
 
     SUPPORTED_LOGGERS = [pl_loggers.WandbLogger]
@@ -100,6 +104,7 @@ class LogMedia(Callback):
         period_epoch: int = 1,
         period_step: int = 0,
         save_to_disk: bool = True,
+        save_latest_only: bool = True,
         logs_dir: Optional[str] = None,
         verbose: bool = False,
     ):
@@ -108,9 +113,14 @@ class LogMedia(Callback):
         self.period_epoch = period_epoch
         self.period_step = period_step
         self.save_to_disk = save_to_disk
-        self.logs_dir = logs_dir
+        self.save_latest_only = save_latest_only
         self.verbose = verbose
         self.valid_logger = False
+
+        try:
+            self.logs_dir = Path(logs_dir) if self.save_to_disk else None
+        except TypeError as e:
+            raise ValueError(f"Invalid logs_dir: {logs_dir}. \n{e}")
 
         # Project-specific fields
         self.class_labels_lapa = {
@@ -141,32 +151,22 @@ class LogMedia(Callback):
         if self.verbose:
             pl_module.print(f"Initializing Callback {LogMedia.__name__}")
 
-        # TODO: Create log dir within callback.
-        if trainer.is_global_zero:
-            if self.save_to_disk:
-                if self.logs_dir is None:
-                    raise ValueError(
-                        f"Callback {LogMedia.__name__}: Invalid logs_dir: {self.logs_dir}. Please give "
-                        f"valid path for logs_dir"
-                    )
-                # else:
-                #     self.logs_dir.mkdir(parents=True, exist_ok=True)
-
+        self._create_log_dir()
         self.valid_logger = True if self._logger_is_supported(trainer) else False
 
-        # TODO: Add epoch and step identifier to save on disk files
+        # TODO: SAVE CFG TO LOG DIR
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_log_step(trainer, batch_idx):
-            self._log_results(trainer, pl_module, Mode.TRAIN)
+            self._log_results(trainer, pl_module, Mode.TRAIN, batch_idx)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_log_step(trainer, batch_idx):
-            self._log_results(trainer, pl_module, Mode.VAL)
+            self._log_results(trainer, pl_module, Mode.VAL, batch_idx)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_log_step(trainer, batch_idx):
-            self._log_results(trainer, pl_module, Mode.TEST)
+            self._log_results(trainer, pl_module, Mode.TEST, batch_idx)
 
     def on_train_epoch_end(self, trainer, pl_module, outputs):
         if self._should_log_epoch(trainer):
@@ -180,10 +180,10 @@ class LogMedia(Callback):
         if self._should_log_epoch(trainer):
             self._log_results(trainer, pl_module, Mode.TEST)
 
-    def _log_results(self, trainer, pl_module, mode: Mode):
+    def _log_results(self, trainer, pl_module, mode: Mode, batch_idx: Optional[int] = None):
         pred_data = self._get_preds_from_lightningmodule(pl_module, mode)
         self._log_images_to_wandb(trainer, pred_data, mode)
-        self._save_results_to_disk(pred_data, mode)
+        self._save_results_to_disk(trainer, pred_data, mode, batch_idx)
 
     def _should_log_epoch(self, trainer):
         if trainer.running_sanity_check:
@@ -200,6 +200,10 @@ class LogMedia(Callback):
         return True
 
     @rank_zero_only
+    def _create_log_dir(self):
+        self.logs_dir.mkdir(parents=True, exist_ok=True)
+
+    @rank_zero_only
     def _logger_is_supported(self, trainer):
         """This callback only works with wandb logger"""
         for logger_type in self.SUPPORTED_LOGGERS:
@@ -207,8 +211,8 @@ class LogMedia(Callback):
                 return True
 
         rank_zero_warn(
-            f"WARN: Unsupported logger, will not log any media to logger this run."
-            f" Supported loggers: {[sup_log.__name__ for sup_log in self.SUPPORTED_LOGGERS]}. Given: {trainer.logger}."
+            f"Unsupported logger: '{trainer.logger}', will not log any media to logger this run."
+            f" Supported loggers: {[sup_log.__name__ for sup_log in self.SUPPORTED_LOGGERS]}."
         )
         return False
 
@@ -218,6 +222,7 @@ class LogMedia(Callback):
         Process the tensors as required (example, convert to numpy arrays and scale)
         """
         if pl_module.log_media.len(mode) == 0:  # Empty queue
+            rank_zero_warn(f"\nEmpty LogMediaQueue! Mode: {mode}. Epoch: {pl_module.trainer.current_epoch}")
             return None
 
         media_data = pl_module.log_media.fetch(mode)
@@ -237,13 +242,25 @@ class LogMedia(Callback):
         return out
 
     @rank_zero_only
-    def _save_results_to_disk(self, pred_data: Optional[PredData], mode: Mode):
+    def _save_results_to_disk(
+        self, trainer, pred_data: Optional[PredData], mode: Mode, batch_idx: Optional[int] = None
+    ):
         """For a given mode (train/val/test), save the results to disk"""
         if not self.save_to_disk:
             return
         if pred_data is None:  # Empty queue
             rank_zero_warn(f"Empty queue! Mode: {mode}")
             return
+
+        # Create output filename
+        if self.save_latest_only:
+            output_filename = f"results.{mode.name.lower()}.png"
+        else:
+            if batch_idx is None:
+                output_filename = f"results-epoch{trainer.current_epoch}.{mode.name.lower()}.png"
+            else:
+                output_filename = f"results-epoch{trainer.current_epoch}-step{batch_idx}.{mode.name.lower()}.png"
+        output_filename = self.logs_dir / output_filename
 
         # Get the latest batches from the data queue in LightningModule
         inputs, labels, preds = pred_data.inputs, pred_data.labels, pred_data.preds
@@ -256,11 +273,11 @@ class LogMedia(Callback):
 
         # Create collage of results
         results_l = []
+        # Combine each pair of inp/lbl/pred into singe image
         for inp, lbl, pred in zip(inputs_l, labels_rgb, preds_rgb):
-            # Combine each pair of inp/lbl/pred into singe image
             res_combined = np.concatenate((inp, lbl, pred), axis=1)
             results_l.append(res_combined)
-        # Create grid
+        # Create grid from combined imgs
         n_imgs = len(results_l)
         n_cols = 4  # Fix num of columns
         n_rows = int(math.ceil(n_imgs / n_cols))
@@ -271,8 +288,8 @@ class LogMedia(Callback):
                 grid_results[idy * img_h : (idy + 1) * img_h, idx * img_w : (idx + 1) * img_w, :] = results_l[idx + idy]
 
         # Save collage
-        fname = Path(self.logs_dir) / f"results.{mode.name.lower()}.png"
-        cv2.imwrite(str(fname), cv2.cvtColor(grid_results, cv2.COLOR_RGB2BGR))
+        if not cv2.imwrite(str(output_filename), cv2.cvtColor(grid_results, cv2.COLOR_RGB2BGR)):
+            rank_zero_warn(f"Error in writing image: {output_filename}")
 
     @rank_zero_only
     def _log_images_to_wandb(self, trainer, pred_data: Optional[PredData], mode: Mode):
