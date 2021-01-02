@@ -10,7 +10,7 @@ from pytorch_lightning import loggers as pl_loggers
 from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 
 
-@dataclass(frozen=True)
+@dataclass
 class LoggerConf(ABC):
     name: str
 
@@ -24,7 +24,7 @@ class LoggerConf(ABC):
         pass
 
 
-@dataclass(frozen=True)
+@dataclass
 class DisabledLoggerConf(LoggerConf):
     @staticmethod
     def get_logger(*args):
@@ -35,7 +35,7 @@ class DisabledLoggerConf(LoggerConf):
         return None
 
 
-@dataclass(frozen=True)
+@dataclass
 class WandbConf(LoggerConf):
     """Weights and Biases. Ref: wandb.com"""
 
@@ -49,6 +49,7 @@ class WandbConf(LoggerConf):
         The run object corresponds to a single execution of the script and is returned from `wandb.init()`.
 
         Args:
+            run_id: Unique run id. If run id exists, will continue logging to that run.
             cfg: The entire config got from hydra, for purposes of logging the config of each run in wandb.
             save_dir: Root dir to save wandb log files
 
@@ -74,11 +75,9 @@ class WandbConf(LoggerConf):
         Otherwise a random run-id will be generated
         """
         if self.run_id is None:
-            run_id = wandb.util.generate_id()
-        else:
-            run_id = self.run_id
+            self.run_id = wandb.util.generate_id()
 
-        return run_id
+        return self.run_id
 
 
 valid_names = {
