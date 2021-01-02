@@ -17,7 +17,7 @@ class TrainerConf(ABC):
 
     @abstractmethod
     def get_trainer(
-        self, pl_logger: LightningLoggerBase, callbacks: List[Callback], default_root_dir: Path
+        self, pl_logger: LightningLoggerBase, callbacks: List[Callback], default_root_dir: str
     ) -> pl.Trainer:
         pass
 
@@ -40,12 +40,12 @@ class TrainerConfig(TrainerConf):
     limit_test_batches: float = 1.0
 
     def get_trainer(
-        self, pl_logger: LightningLoggerBase, callbacks: List[Callback], default_root_dir: Path
+        self, pl_logger: LightningLoggerBase, callbacks: List[Callback], default_root_dir: str
     ) -> pl.Trainer:
         trainer = pl.Trainer(
             logger=pl_logger,
             callbacks=callbacks,
-            default_root_dir=str(default_root_dir),
+            default_root_dir=default_root_dir,
             **asdict_filtered(self),
         )
         return trainer

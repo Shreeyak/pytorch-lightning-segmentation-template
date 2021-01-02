@@ -6,6 +6,7 @@ early_stopping:
   min_delta: 0.0005
   patience: 10
   mode: "max"
+  verbose: false
 
 checkpoints:
   monitor: "Val/mIoU"
@@ -13,9 +14,12 @@ checkpoints:
   period: 1
   save_last: null
   save_top_k: null
+  verbose: false
 
 log_media:
   max_samples: 10
   period_epoch: 1
   period_step: 0
   save_to_disk: true
+  save_latest_only: true
+  verbose: true

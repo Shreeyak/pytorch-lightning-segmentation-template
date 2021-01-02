@@ -1,65 +1,18 @@
-import os
-from collections import deque
-from typing import Any, Dict, List, Optional
-from pathlib import Path
+from typing import Any, List
 
 import hydra
 import pytorch_lightning as pl
 import wandb
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig
 
 from seg_lapa import metrics
 from seg_lapa.config_parse import train_conf
 from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.loss_func import CrossEntropy2D
 from seg_lapa.utils.path_check import get_project_root
-from seg_lapa.callbacks.log_media import Mode, LogMedia
-
-LOGS_DIR = "logs"
-
-
-def is_rank_zero():
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    node_rank = int(os.environ.get("NODE_RANK", 0))
-    if local_rank == 0 and node_rank == 0:
-        return True
-
-    return False
-
-
-def generate_run_id(cfg: DictConfig):
-    # Set the run ID: Read from config if resuming training, else generate unique id
-    # TODO: read from cfg if resuming training - get from config dataclass! add method to resume training section.
-    run_id = wandb.util.generate_id()
-    return run_id
-
-
-def create_log_dir(cfg: DictConfig, run_id: str) -> Optional[Path]:
-    """Each run's log dir will have same name as wandb runid"""
-    log_root_dir = get_project_root() / LOGS_DIR
-
-    if is_rank_zero():
-        log_dir = log_root_dir / run_id
-        log_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save the input config file to logs dir
-        OmegaConf.save(cfg, log_dir / "train.yaml")
-    else:
-        return log_root_dir / "None"
-
-    return log_dir
-
-
-def fix_seeds(random_seed: Optional[int]) -> None:
-    """Fix seeds for reproducibility.
-    Ref:
-        https://pytorch.org/docs/stable/notes/randomness.html
-
-    Args:
-        random_seed: If None, seeds not set. If int, uses value to seed.
-    """
-    if random_seed is not None:
-        pl.seed_everything(random_seed)
+from seg_lapa.callbacks.log_media import Mode, LogMediaQueue
+from seg_lapa.utils.utils import is_rank_zero
+from seg_lapa.utils import utils
 
 
 class DeeplabV3plus(pl.LightningModule):
@@ -74,8 +27,8 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
 
         # Returning images from _step methods is memory-expensive. Save predictions to be logged in a circular queue
-        # and consume in a callback.
-        self.log_media: Dict[Mode, deque] = LogMedia.get_empty_data_queue(log_media_max_batches)
+        # to be consumed in a callback.
+        self.log_media: LogMediaQueue = LogMediaQueue(log_media_max_batches)
 
     def forward(self, x):
         """In lightning, forward defines the prediction/inference actions.
@@ -108,7 +61,7 @@ class DeeplabV3plus(pl.LightningModule):
 
         # Returning images is expensive - All the batches are accumulated for _epoch_end().
         # Save the latst predictions to be logged in an attr. They will be consumed by the LogMedia callback.
-        self.log_media[Mode.TRAIN].append({"inputs": inputs, "labels": labels, "preds": predictions})
+        self.log_media.append({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TRAIN)
 
         return {"loss": loss}
 
@@ -125,7 +78,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_val(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media[Mode.VAL].append({"inputs": inputs, "labels": labels, "preds": predictions})
+        self.log_media.append({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.VAL)
 
         return {"val_loss": loss}
 
@@ -142,7 +95,7 @@ class DeeplabV3plus(pl.LightningModule):
         self.iou_test(predictions, labels)
 
         # Save the latest predictions to be logged
-        self.log_media[Mode.TEST].append({"inputs": inputs, "labels": labels, "preds": predictions})
+        self.log_media.append({"inputs": inputs, "labels": labels, "preds": predictions}, Mode.TEST)
 
         return {"test_loss": loss}
 
@@ -178,13 +131,12 @@ def main(cfg: DictConfig):
     if is_rank_zero():
         print("\nResolved Dataclass:\n", config, "\n")
 
-    fix_seeds(config.random_seed)
-    run_id = generate_run_id(cfg)
-    log_dir = create_log_dir(cfg, run_id)
+    utils.fix_seeds(config.random_seed)
+    exp_dir = utils.generate_log_dir_path(config)
 
-    wb_logger = config.logger.get_logger(cfg, run_id, get_project_root())
-    callbacks = config.callbacks.get_callbacks_list(log_dir)
-    trainer = config.trainer.get_trainer(wb_logger, callbacks, get_project_root())
+    wb_logger = config.logger.get_logger(cfg, config.logs_root_dir)
+    callbacks = config.callbacks.get_callbacks_list(exp_dir, cfg)
+    trainer = config.trainer.get_trainer(wb_logger, callbacks, config.logs_root_dir)
     model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
 

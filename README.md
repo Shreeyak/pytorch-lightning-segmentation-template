@@ -93,13 +93,24 @@ python -m seg_lapa.train callbacks.early_stopping.patience=20
 #### LogMedia
 
 The LogMedia callback is used to log media, such as images and point clouds, to the logger and to local disk.
-It is also used to save the config files for each run.
+It is also used to save the config files for each run. The `LightningModule` adds data to a queue, which is
+fetched within the `LogMedia` callback and logged to the logger and/or disk.
 
-Override or modify the `_log_images_to_wandb()` and `_save_results_to_disk()` methods for your application.
+To customize this callback for your application, override or modify the following methods:
+
+ - `LogMedia._get_preds_from_lightningmodule()`
+ - `LogMedia._log_images_to_wandb()`
+ - `LogMedia._save_results_to_disk()`
+
+##### Notes:
+
+- LogMedia currently supports the Weights and Biases logger only.
+- By default, LogMedia only saves the latest samples to disk. To save the results from each step/epoch, pass
+`save_latest_only=False`.
 
 #### EarlyStopping
 
-Here's some tips on how to configure early stopping:
+This is Lightning's built-in callback. Here's some tips on how to configure early stopping:
 
 ```
 Args:
@@ -120,6 +131,20 @@ Args:
                   Choose the number of epochs between when you feel it's started to converge and after you're
                   sure the model has converged. Reduce the patience if you see the model continues to train for too long.
 ```
+
+#### ModelCheckpoint
+
+This is also Lightning's built-in callback to save checkpoints. It can monitor a logged value and save best checkpoints,
+ save the latest checkpoint or save checkpoints every N steps/epoch.  
+We save checkpoints in our own logs directory structure, which is different from Lightning's default.
+
+### Loggers
+
+At this point, this project only supports the WandB logger (Weights and Biases). Other loggers can easily be added.  
+Modify these methods after adding your logger to the config system:
+
+- `utils.generate_log_dir_path()` - Generates dir structure to save logs
+- `LogMedia._log_images_to_wandb()` - If logging media such as images
 
 ### Notes
 #### Absolute imports

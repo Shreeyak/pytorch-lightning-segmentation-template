@@ -9,6 +9,6 @@ max_epochs: 3
 resume_from_checkpoint: null
 log_every_n_steps: 1
 overfit_batches: 0.0
-limit_train_batches: 5
-limit_val_batches: 5
-limit_test_batches: 5
+limit_train_batches: 2
+limit_val_batches: 2
+limit_test_batches: 2

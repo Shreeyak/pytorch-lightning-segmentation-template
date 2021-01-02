@@ -3,3 +3,4 @@ name: wandb
 entity: cleargrasp2
 project: shrek_debug
 run_name: null # If None, will generate random name
+run_id: null # Pass run_id to resume logging to that run
