@@ -138,6 +138,14 @@ This is also Lightning's built-in callback to save checkpoints. It can monitor a
  save the latest checkpoint or save checkpoints every N steps/epoch.  
 We save checkpoints in our own logs directory structure, which is different from Lightning's default.
 
+### Loggers
+
+At this point, this project only supports the WandB logger (Weights and Biases). Other loggers can easily be added.  
+Modify these methods after adding your logger to the config system:
+
+- `utils.generate_log_dir_path()` - Generates dir structure to save logs
+- `LogMedia._log_images_to_wandb()` - If logging media such as images
+
 ### Notes
 #### Absolute imports
 This project is setup as a package. One of the advantages of setting it up as a

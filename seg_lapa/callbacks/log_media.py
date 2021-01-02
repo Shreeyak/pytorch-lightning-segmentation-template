@@ -97,7 +97,7 @@ class LogMedia(Callback):
         max_samples (int): Max number of data samples to log
         save_to_disk (bool): If True, save results to disk
         save_latest_only (only): If True, will overwrite prev results at each period.
-        logs_dir (str or Path): Path to directory where results will be saved
+        exp_dir (str or Path): Path to directory where results will be saved
         verbose (bool): Whether to print additional information.
     """
 
@@ -111,8 +111,8 @@ class LogMedia(Callback):
         period_step: int = 0,
         save_to_disk: bool = True,
         save_latest_only: bool = True,
-        logs_dir: Optional[str] = None,
-        verbose: bool = False,
+        exp_dir: Optional[str] = None,
+        verbose: bool = True,
     ):
         super().__init__()
         self.cfg = cfg
@@ -125,9 +125,9 @@ class LogMedia(Callback):
         self.valid_logger = False
 
         try:
-            self.logs_dir = Path(logs_dir) if self.save_to_disk else None
+            self.exp_dir = Path(exp_dir) if self.save_to_disk else None
         except TypeError as e:
-            raise ValueError(f"Invalid logs_dir: {logs_dir}. \n{e}")
+            raise ValueError(f"Invalid exp_dir: {exp_dir}. \n{e}")
 
         if not OmegaConf.is_config(self.cfg):
             raise ValueError(f"Config file not of type {DictConfig}. Given: {type(cfg)}")
@@ -159,7 +159,10 @@ class LogMedia(Callback):
             raise AttributeError(f"{pl_module.__class__.__name__}.{req_attr} must be of type {LogMediaQueue.__name__}")
 
         if self.verbose:
-            pl_module.print(f"Initializing Callback {LogMedia.__name__}")
+            pl_module.print(
+                f"Initializing Callback {LogMedia.__name__}. "
+                f"Logging to disk: {self.exp_dir if self.save_to_disk else False}."
+            )
 
         self._create_log_dir()
         self.valid_logger = True if self._logger_is_supported(trainer) else False
@@ -212,9 +215,9 @@ class LogMedia(Callback):
         if not self.save_to_disk:
             return
 
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        self.exp_dir.mkdir(parents=True, exist_ok=True)
         if self.cfg is not None:
-            fname = self.logs_dir / CONFIG_FNAME
+            fname = self.exp_dir / CONFIG_FNAME
             OmegaConf.save(config=self.cfg, f=fname, resolve=True)
 
     @rank_zero_only
@@ -274,7 +277,7 @@ class LogMedia(Callback):
                 output_filename = f"results-epoch{trainer.current_epoch}.{mode.name.lower()}.png"
             else:
                 output_filename = f"results-epoch{trainer.current_epoch}-step{batch_idx}.{mode.name.lower()}.png"
-        output_filename = self.logs_dir / output_filename
+        output_filename = self.exp_dir / output_filename
 
         # Get the latest batches from the data queue in LightningModule
         inputs, labels, preds = pred_data.inputs, pred_data.labels, pred_data.preds

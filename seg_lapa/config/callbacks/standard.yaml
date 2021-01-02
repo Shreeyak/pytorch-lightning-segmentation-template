@@ -22,4 +22,4 @@ log_media:
   period_step: 0
   save_to_disk: true
   save_latest_only: true
-  verbose: false
+  verbose: true

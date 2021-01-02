@@ -132,10 +132,9 @@ def main(cfg: DictConfig):
         print("\nResolved Dataclass:\n", config, "\n")
 
     utils.fix_seeds(config.random_seed)
-    run_id = utils.generate_run_id(cfg)
-    exp_dir = utils.create_log_dir(run_id, config.logs_root_dir)
+    exp_dir = utils.generate_log_dir_path(config)
 
-    wb_logger = config.logger.get_logger(cfg, run_id, config.logs_root_dir)
+    wb_logger = config.logger.get_logger(cfg, config.logs_root_dir)
     callbacks = config.callbacks.get_callbacks_list(exp_dir, cfg)
     trainer = config.trainer.get_trainer(wb_logger, callbacks, config.logs_root_dir)
     model = DeeplabV3plus(config)

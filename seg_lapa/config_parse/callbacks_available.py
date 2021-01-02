@@ -43,5 +43,5 @@ class LogMediaConf:
     save_latest_only: bool
     verbose: bool = False
 
-    def get_callback(self, logs_dir: str, cfg: DictConfig) -> Callback:
-        return LogMedia(logs_dir=logs_dir, cfg=cfg, **asdict_filtered(self))
+    def get_callback(self, exp_dir: str, cfg: DictConfig) -> Callback:
+        return LogMedia(exp_dir=exp_dir, cfg=cfg, **asdict_filtered(self))

@@ -3,11 +3,11 @@ import datetime
 from pathlib import Path
 from typing import Optional
 
-import wandb
 import pytorch_lightning as pl
-from omegaconf import OmegaConf, DictConfig
 
 from seg_lapa.utils.path_check import get_project_root
+from seg_lapa.config_parse.train_conf import TrainConf
+from seg_lapa.config_parse.logger_conf import DisabledLoggerConf, WandbConf
 
 LOGS_DIR = "logs"
 
@@ -21,23 +21,30 @@ def is_rank_zero():
     return False
 
 
-def generate_run_id(cfg: DictConfig):
-    # Set the run ID: Read from config if resuming training, else generate unique id
-    # TODO: read from cfg if resuming training - get from config dataclass! add method to resume training section.
-    run_id = wandb.util.generate_id()
-    return run_id
+def generate_log_dir_path(config: TrainConf) -> Path:
+    """Generate the path to the log dir for this run.
+    The directory structure for logs depends on the logger used.
 
+    wandb - Each run's log dir's name will contain the wandb runid for easy identification
 
-def create_log_dir(run_id: str, logs_root_dir: str) -> str:
-    """Each run's log dir will have same name as wandb runid"""
-    logs_root_dir = Path(logs_root_dir)
+    Args:
+        config: The config dataclass.
+    """
+    logs_root_dir = Path(config.logs_root_dir)
     if not logs_root_dir.is_absolute():
         # Any relative path is considered to be relative to the project root dir
         logs_root_dir = get_project_root() / logs_root_dir
 
-    logs_root_dir = logs_root_dir / LOGS_DIR
+    # Exp directory structure would depend on the logger used
+    logs_root_dir = logs_root_dir / LOGS_DIR / config.logger.name
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
-    exp_dir = logs_root_dir / f"{timestamp}-{run_id}"
+    if isinstance(config.logger, DisabledLoggerConf):
+        exp_dir = logs_root_dir / f"{timestamp}"
+    elif isinstance(config.logger, WandbConf):
+        run_id = config.logger.get_run_id()
+        exp_dir = logs_root_dir / f"{timestamp}-{run_id}"
+    else:
+        raise NotImplementedError(f"Generating log dir not implemented for logger: {config.logger}")
 
     return exp_dir
 
