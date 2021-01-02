@@ -39,13 +39,6 @@ def create_log_dir(run_id: str, logs_root_dir: str) -> str:
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
     exp_dir = logs_root_dir / f"{timestamp}-{run_id}"
 
-    # if is_rank_zero():
-    #     log_dir = log_root_dir / run_id
-    #     log_dir.mkdir(parents=True, exist_ok=True)
-    #
-    #     # Save the input config file to logs dir
-    #     OmegaConf.save(cfg, log_dir / "train.yaml")
-
     return exp_dir
 
 

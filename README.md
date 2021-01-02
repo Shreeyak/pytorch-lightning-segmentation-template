@@ -110,7 +110,7 @@ To customize this callback for your application, override or modify the followin
 
 #### EarlyStopping
 
-This is PTL's built-in callback. Here's some tips on how to configure early stopping:
+This is Lightning's built-in callback. Here's some tips on how to configure early stopping:
 
 ```
 Args:
@@ -131,6 +131,12 @@ Args:
                   Choose the number of epochs between when you feel it's started to converge and after you're
                   sure the model has converged. Reduce the patience if you see the model continues to train for too long.
 ```
+
+#### ModelCheckpoint
+
+This is also Lightning's built-in callback to save checkpoints. It can monitor a logged value and save best checkpoints,
+ save the latest checkpoint or save checkpoints every N steps/epoch.  
+We save checkpoints in our own logs directory structure, which is different from Lightning's default.
 
 ### Notes
 #### Absolute imports
