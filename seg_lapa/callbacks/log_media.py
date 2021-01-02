@@ -74,12 +74,10 @@ class LogMediaQueue:
 
 
 class LogMedia(Callback):
-    """Logs model output images and other media to weights and biases
+    r"""Logs model output images and other media to weights and biases
 
-    This callback required adding an attribute to the LightningModule called ``self.log_media``. This is a cicular
+    This callback required adding an attribute to the LightningModule called ``self.log_media``. This is a circular
     queue that holds the latest N batches. This callback fetches the latest data from the queue for logging.
-
-    Use ``get_empty_data_queue()`` to get the data structure.
 
     Usage:
         import pytorch_lightning as pl
@@ -98,7 +96,7 @@ class LogMedia(Callback):
         save_to_disk (bool): If True, save results to disk
         save_latest_only (only): If True, will overwrite prev results at each period.
         exp_dir (str or Path): Path to directory where results will be saved
-        verbose (bool): Whether to print additional information.
+        verbose (bool): verbosity mode. Default: ``True``.
     """
 
     SUPPORTED_LOGGERS = [pl_loggers.WandbLogger]
