@@ -3,7 +3,7 @@ from typing import Optional
 
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, LearningRateMonitor
 
 from seg_lapa.config_parse.conf_utils import asdict_filtered
 from seg_lapa.callbacks.log_media import LogMedia
@@ -45,3 +45,12 @@ class LogMediaConf:
 
     def get_callback(self, exp_dir: str, cfg: DictConfig) -> Callback:
         return LogMedia(exp_dir=exp_dir, cfg=cfg, **asdict_filtered(self))
+
+
+@dataclass(frozen=True)
+class LearningRateMonitorConf:
+    logging_interval: Optional[str]
+    log_momentum: bool = False
+
+    def get_callback(self) -> Callback:
+        return LearningRateMonitor(**asdict_filtered(self))

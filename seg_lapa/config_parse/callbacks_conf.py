@@ -7,7 +7,12 @@ from pydantic.dataclasses import dataclass
 from pytorch_lightning.callbacks import Callback
 
 from seg_lapa.config_parse.conf_utils import validate_config_group_generic
-from seg_lapa.config_parse.callbacks_available import EarlyStopConf, CheckpointConf, LogMediaConf
+from seg_lapa.config_parse.callbacks_available import (
+    EarlyStopConf,
+    CheckpointConf,
+    LogMediaConf,
+    LearningRateMonitorConf,
+)
 
 # The Callbacks config cannot be directly initialized because it contains sub-entries for each callback, each
 # of which describes a separate class.
@@ -36,6 +41,7 @@ class StandardCallbacksConf(CallbacksConf):
     early_stopping: Optional[Dict] = None
     checkpoints: Optional[Dict] = None
     log_media: Optional[Dict] = None
+    lr_monitor: Optional[Dict] = None
 
     def get_callbacks_list(self, exp_dir: str, cfg: DictConfig) -> List[Callback]:
         """Get all available callbacks and the Callback Objects in list
@@ -53,6 +59,10 @@ class StandardCallbacksConf(CallbacksConf):
         if self.log_media is not None:
             log_media = LogMediaConf(**self.log_media).get_callback(exp_dir, cfg)
             callbacks_list.append(log_media)
+
+        if self.lr_monitor is not None:
+            lr_monitor = LearningRateMonitorConf(**self.lr_monitor).get_callback()
+            callbacks_list.append(lr_monitor)
 
         return callbacks_list
 
