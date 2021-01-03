@@ -191,8 +191,8 @@ class LogMedia(Callback):
 
     def _log_results(self, trainer, pl_module, mode: Mode, batch_idx: Optional[int] = None):
         pred_data = self._get_preds_from_lightningmodule(pl_module, mode)
-        self._log_images_to_wandb(trainer, pred_data, mode)
-        self._save_results_to_disk(trainer, pred_data, mode, batch_idx)
+        self._save_media_to_logger(trainer, pred_data, mode)
+        self._save_media_to_disk(trainer, pred_data, mode, batch_idx)
 
     def _should_log_epoch(self, trainer):
         if trainer.running_sanity_check:
@@ -257,9 +257,7 @@ class LogMedia(Callback):
         return out
 
     @rank_zero_only
-    def _save_results_to_disk(
-        self, trainer, pred_data: Optional[PredData], mode: Mode, batch_idx: Optional[int] = None
-    ):
+    def _save_media_to_disk(self, trainer, pred_data: Optional[PredData], mode: Mode, batch_idx: Optional[int] = None):
         """For a given mode (train/val/test), save the results to disk"""
         if not self.save_to_disk:
             return
@@ -307,13 +305,19 @@ class LogMedia(Callback):
             rank_zero_warn(f"Error in writing image: {output_filename}")
 
     @rank_zero_only
-    def _log_images_to_wandb(self, trainer, pred_data: Optional[PredData], mode: Mode):
+    def _save_media_to_logger(self, trainer, pred_data: Optional[PredData], mode: Mode):
         """Log images to wandb at the end of a batch. Steps are common for train/val/test"""
         if not self.valid_logger:
             return
         if pred_data is None:  # Empty queue
             return
 
+        if isinstance(trainer.logger, pl_loggers.WandbLogger):
+            self._log_media_to_wandb(trainer, pred_data, mode)
+        else:
+            raise NotImplementedError(f"No method to log media to logger: {trainer.logger}")
+
+    def _log_media_to_wandb(self, trainer, pred_data: Optional[PredData], mode: Mode):
         # Get the latest batches from the data queue in LightningModule
         inputs, labels, preds = pred_data.inputs, pred_data.labels, pred_data.preds
 

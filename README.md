@@ -99,8 +99,10 @@ fetched within the `LogMedia` callback and logged to the logger and/or disk.
 To customize this callback for your application, override or modify the following methods:
 
  - `LogMedia._get_preds_from_lightningmodule()`
- - `LogMedia._log_images_to_wandb()`
- - `LogMedia._save_results_to_disk()`
+ - `LogMedia.__save_media_to_disk()`
+ - `LogMedia.__save_media_to_logger()`
+ - The LightningModule should have an attribute of type `LogMediaQueue` called `self.log_media`.
+ Change the data that you push into the queue in train/val/test steps as per requirement.
 
 ##### Notes:
 
