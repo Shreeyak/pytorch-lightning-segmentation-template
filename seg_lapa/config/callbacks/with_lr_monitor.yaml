@@ -1,0 +1,31 @@
+# @package _group_
+name: standard
+
+early_stopping:
+  monitor: "Val/mIoU"
+  min_delta: 0.0005
+  patience: 10
+  mode: "max"
+  verbose: false
+
+checkpoints:
+  monitor: "Val/mIoU"
+  mode: "max"
+  period: 1
+  save_last: null
+  save_top_k: null
+  verbose: false
+
+log_media:
+  max_samples: 10
+  period_epoch: 1
+  period_step: 0
+  save_to_disk: true
+  save_latest_only: true
+  verbose: true
+
+lr_monitor:
+  # set to epoch or step to log lr of all optimizers at the same interval, set to None to log at individual
+  # interval according to the interval key of each scheduler.
+  logging_interval: "step"
+  log_momentum: false # If true, log the momentum values of the optimizer, if present

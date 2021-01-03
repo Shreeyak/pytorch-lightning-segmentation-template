@@ -119,7 +119,24 @@ class DeeplabV3plus(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())
-        return optimizer
+
+        ret_opt = {"optimizer": optimizer}
+
+        sch = self.config.scheduler.get_scheduler(optimizer)
+        if sch is not None:
+            scheduler = {
+                "scheduler": sch,  # The LR scheduler instance (required)
+                "interval": "epoch",  # The unit of the scheduler's step size
+                "frequency": 1,  # The frequency of the scheduler
+                "reduce_on_plateau": False,  # For ReduceLROnPlateau scheduler
+                "monitor": "Val/mIoU",  # Metric for ReduceLROnPlateau to monitor
+                "strict": True,  # Whether to crash the training if `monitor` is not found
+                "name": None,  # Custom name for LearningRateMonitor to use
+            }
+
+            ret_opt.update({"lr_scheduler": scheduler})
+
+        return ret_opt
 
 
 @hydra.main(config_path="config", config_name="train")
