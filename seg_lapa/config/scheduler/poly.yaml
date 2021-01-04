@@ -6,6 +6,5 @@ name: poly
 # Maximum number of iterations for which training will run
 max_iter: 500
 
-
 # The polinomial factor per formula above
 pow_factor: 0.9

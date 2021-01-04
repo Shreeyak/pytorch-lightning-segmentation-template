@@ -3,7 +3,6 @@
 # The policy cycles the learning rate between two boundaries with a constant frequency
 name: cyclic
 
-
 #  Initial learning rate which is the lower boundary in the cycle for each parameter group.
 base_lr: 0.0001
 
