@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
-from pathlib import Path
+from typing import List, Optional
 
 import pytorch_lightning as pl
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
-from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.loggers.base import LightningLoggerBase
 
 from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
 

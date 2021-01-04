@@ -4,8 +4,8 @@ import torch
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
-from seg_lapa.networks.deeplab.deeplab import DeepLab
 from seg_lapa.config_parse.conf_utils import asdict_filtered, validate_config_group_generic
+from seg_lapa.networks.deeplab.deeplab import DeepLab
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,5 @@
 import enum
+
 import numpy as np
 from PIL import Image
 

@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Sequence, Dict
+from typing import Dict, Optional, Sequence
 
 from omegaconf import DictConfig, OmegaConf
 

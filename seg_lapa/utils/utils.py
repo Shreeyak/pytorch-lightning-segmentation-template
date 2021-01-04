@@ -1,13 +1,13 @@
-import os
 import datetime
+import os
 from pathlib import Path
 from typing import Optional
 
 import pytorch_lightning as pl
 
-from seg_lapa.utils.path_check import get_project_root
-from seg_lapa.config_parse.train_conf import TrainConf
 from seg_lapa.config_parse.logger_conf import DisabledLoggerConf, WandbConf
+from seg_lapa.config_parse.train_conf import TrainConf
+from seg_lapa.utils.path_check import get_project_root
 
 LOGS_DIR = "logs"
 

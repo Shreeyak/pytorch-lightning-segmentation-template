@@ -3,10 +3,10 @@ from typing import Optional
 
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping, LearningRateMonitor
+from pytorch_lightning.callbacks import Callback, EarlyStopping, LearningRateMonitor, ModelCheckpoint
 
-from seg_lapa.config_parse.conf_utils import asdict_filtered
 from seg_lapa.callbacks.log_media import LogMedia
+from seg_lapa.config_parse.conf_utils import asdict_filtered
 
 
 @dataclass(frozen=True)

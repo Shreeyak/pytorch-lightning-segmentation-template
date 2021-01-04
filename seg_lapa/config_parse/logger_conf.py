@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
 import wandb
 from omegaconf import DictConfig, OmegaConf

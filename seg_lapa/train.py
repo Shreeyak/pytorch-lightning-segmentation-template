@@ -6,11 +6,11 @@ import wandb
 from omegaconf import DictConfig
 
 from seg_lapa import metrics
+from seg_lapa.callbacks.log_media import LogMediaQueue, Mode
 from seg_lapa.config_parse.train_conf import ParseConfig
 from seg_lapa.loss_func import CrossEntropy2D
-from seg_lapa.callbacks.log_media import Mode, LogMediaQueue
-from seg_lapa.utils.utils import is_rank_zero
 from seg_lapa.utils import utils
+from seg_lapa.utils.utils import is_rank_zero
 
 
 class DeeplabV3plus(pl.LightningModule, ParseConfig):
