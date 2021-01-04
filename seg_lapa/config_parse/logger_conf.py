@@ -62,11 +62,10 @@ class WandbConf(LoggerConf):
         run_name = args_dict.pop("run_name")
         run_id = args_dict.pop("run_id")
 
-        cfg_dict = OmegaConf.to_container(cfg, resolve=True)
+        # If `self.save_hyperparams()` is called in LightningModule, it will save the cfg passed as argument
+        # cfg_dict = OmegaConf.to_container(cfg, resolve=True)
 
-        wb_logger = pl_loggers.WandbLogger(
-            name=run_name, id=run_id, save_dir=str(save_dir), config=cfg_dict, **args_dict
-        )
+        wb_logger = pl_loggers.WandbLogger(name=run_name, id=run_id, save_dir=str(save_dir), **args_dict)
 
         return wb_logger
 
