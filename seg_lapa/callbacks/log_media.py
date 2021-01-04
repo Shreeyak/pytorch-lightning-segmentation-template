@@ -165,6 +165,14 @@ class LogMedia(Callback):
         self._create_log_dir()
         self.valid_logger = True if self._logger_is_supported(trainer) else False
 
+        # Save copy of config to logger
+        if self.valid_logger:
+            if isinstance(trainer.logger, pl_loggers.WandbLogger):
+                OmegaConf.save(self.cfg, Path(trainer.logger.save_dir) / "train.yaml")
+                trainer.logger.experiment.save("*.yaml")
+            else:
+                raise NotImplementedError
+
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if self._should_log_step(trainer, batch_idx):
             self._log_results(trainer, pl_module, Mode.TRAIN, batch_idx)
