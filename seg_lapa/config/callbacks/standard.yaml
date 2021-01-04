@@ -9,7 +9,7 @@ early_stopping:
   verbose: false
 
 checkpoints:
-  filename: "best-{epoch}" # PL Default: "{epoch}-{step}"
+  filename: "best" # PL Default: "{epoch}-{step}". `=` in filename can cause errors when parsing cli overrides.
   save_last: true
   save_top_k: 1
   monitor: "Val/mIoU"
