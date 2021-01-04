@@ -14,7 +14,7 @@ checkpoints:
   save_top_k: 1
   monitor: "Val/mIoU"
   mode: "max"
-  period: 1
+  period: 10
   verbose: false
 
 log_media:
