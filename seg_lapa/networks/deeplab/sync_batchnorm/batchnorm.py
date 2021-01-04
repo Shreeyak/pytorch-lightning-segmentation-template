@@ -12,9 +12,8 @@ import collections
 
 import torch
 import torch.nn.functional as F
-
 from torch.nn.modules.batchnorm import _BatchNorm
-from torch.nn.parallel._functions import ReduceAddCoalesced, Broadcast
+from torch.nn.parallel._functions import Broadcast, ReduceAddCoalesced
 
 from .comm import SyncMaster
 

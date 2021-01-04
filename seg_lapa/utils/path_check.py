@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 
 class PathType(Enum):

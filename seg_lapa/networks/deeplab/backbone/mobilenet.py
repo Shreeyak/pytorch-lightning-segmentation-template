@@ -1,9 +1,9 @@
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
-import math
-from ..sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
+
+from ..sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
 def conv_bn(inp, oup, stride, BatchNorm):

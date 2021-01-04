@@ -1,15 +1,15 @@
-import cv2
 import enum
-import numpy as np
 import random
 from pathlib import Path
-from typing import Optional, Union, Tuple, List
+from typing import List, Optional, Tuple, Union
 
 import albumentations as A
+import cv2
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torchvision
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from seg_lapa.utils.path_check import get_path, PathType
 

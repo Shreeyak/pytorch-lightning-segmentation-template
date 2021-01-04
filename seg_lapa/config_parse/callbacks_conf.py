@@ -1,18 +1,18 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 from pytorch_lightning.callbacks import Callback
 
-from seg_lapa.config_parse.conf_utils import validate_config_group_generic
 from seg_lapa.config_parse.callbacks_available import (
-    EarlyStopConf,
     CheckpointConf,
-    LogMediaConf,
+    EarlyStopConf,
     LearningRateMonitorConf,
+    LogMediaConf,
 )
+from seg_lapa.config_parse.conf_utils import validate_config_group_generic
+
 
 # The Callbacks config cannot be directly initialized because it contains sub-entries for each callback, each
 # of which describes a separate class.

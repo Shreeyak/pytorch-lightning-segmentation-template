@@ -1,4 +1,4 @@
-from . import resnet, xception, drn, mobilenet
+from . import drn, mobilenet, resnet, xception
 
 
 def build_backbone(backbone, output_stride, BatchNorm):

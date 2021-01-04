@@ -3,24 +3,24 @@ from typing import Optional
 from omegaconf import DictConfig
 from pydantic.dataclasses import dataclass
 
-from seg_lapa.config_parse.dataset_conf import DatasetConf
-from seg_lapa.config_parse.optimizer_conf import OptimConf
-from seg_lapa.config_parse.trainer_conf import TrainerConf
-from seg_lapa.config_parse.model_conf import ModelConf
-from seg_lapa.config_parse.scheduler_conf import SchedulerConf
-from seg_lapa.config_parse.logger_conf import LoggerConf
-from seg_lapa.config_parse.callbacks_conf import CallbacksConf
-from seg_lapa.config_parse.load_weights_conf import LoadWeightsConf
 from seg_lapa.config_parse import (
-    dataset_conf,
-    optimizer_conf,
-    trainer_conf,
-    model_conf,
-    scheduler_conf,
-    logger_conf,
     callbacks_conf,
+    dataset_conf,
     load_weights_conf,
+    logger_conf,
+    model_conf,
+    optimizer_conf,
+    scheduler_conf,
+    trainer_conf,
 )
+from seg_lapa.config_parse.callbacks_conf import CallbacksConf
+from seg_lapa.config_parse.dataset_conf import DatasetConf
+from seg_lapa.config_parse.load_weights_conf import LoadWeightsConf
+from seg_lapa.config_parse.logger_conf import LoggerConf
+from seg_lapa.config_parse.model_conf import ModelConf
+from seg_lapa.config_parse.optimizer_conf import OptimConf
+from seg_lapa.config_parse.scheduler_conf import SchedulerConf
+from seg_lapa.config_parse.trainer_conf import TrainerConf
 
 
 @dataclass(frozen=True)
