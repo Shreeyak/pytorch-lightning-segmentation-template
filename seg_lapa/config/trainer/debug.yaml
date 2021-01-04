@@ -1,13 +1,20 @@
 # @package _group_
 name: trainer
 
-gpus: 1 # Denotes the number of gpus to use. Set CUDA_VISIBLE_DEVICES env var to control which gpus are used.
+gpus: 1
 accelerator: "ddp"
 precision: 16
-fast_dev_run: False
+
 max_epochs: 3
 resume_from_checkpoint: null
 log_every_n_steps: 1
+
+# For deterministic runs
+benchmark: False
+deterministic: True
+
+# Limit batches for debugging
+fast_dev_run: False
 overfit_batches: 0.0
 limit_train_batches: 2
 limit_val_batches: 2

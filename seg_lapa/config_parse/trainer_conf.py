@@ -34,7 +34,7 @@ class TrainerConfig(TrainerConf):
     benchmark: bool = False
     deterministic: bool = False
     fast_dev_run: bool = False
-    overfit_batches: int = 0.0
+    overfit_batches: float = 0.0
     limit_train_batches: float = 1.0
     limit_val_batches: float = 1.0
     limit_test_batches: float = 1.0

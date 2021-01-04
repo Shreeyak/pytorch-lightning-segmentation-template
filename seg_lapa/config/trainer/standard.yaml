@@ -15,7 +15,7 @@ deterministic: True # If true enables cudnn.deterministic.
 
 # Limit batches for debugging
 fast_dev_run: False # If True, runs 1 batch of train, val and test to find any bugs (ie: a sort of unit test).
-overfit_batches: 0.0 # Overfit a percent of training data (float) or a set number of batches (int)
-limit_train_batches: 1.0 # How much of training dataset to check (floats = percent, int = num_batches)
+overfit_batches: 0.0 # Overfit on subset of training data. Use the same as val/test set. (floats = percent, int = num_batches). Warn: 1 will be cast to 1.0.
+limit_train_batches: 1.0 # How much of training dataset to check (floats = percent, int = num_batches). Warn: 1 will be cast to 1.0.
 limit_val_batches: 1.0
 limit_test_batches: 1.0
