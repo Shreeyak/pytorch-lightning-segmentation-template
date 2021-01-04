@@ -7,9 +7,9 @@ import pytorch_lightning as pl
 
 from seg_lapa.config_parse.logger_conf import DisabledLoggerConf, WandbConf
 from seg_lapa.config_parse.train_conf import TrainConf
-from seg_lapa.utils.path_check import get_project_root
+from seg_lapa.utils import path_check
 
-LOGS_DIR = "logs"
+LOGS_DIR = "log-media"
 
 
 def is_rank_zero():
@@ -30,14 +30,11 @@ def generate_log_dir_path(config: TrainConf) -> Path:
     Args:
         config: The config dataclass.
     """
-    logs_root_dir = Path(config.logs_root_dir)
-    if not logs_root_dir.is_absolute():
-        # Any relative path is considered to be relative to the project root dir
-        logs_root_dir = get_project_root() / logs_root_dir
+    logs_root_dir = path_check.get_path(config.logs_root_dir, force_relative_to_project=True)
 
     # Exp directory structure would depend on the logger used
-    logs_root_dir = logs_root_dir / LOGS_DIR / config.logger.name
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
+    logs_root_dir = logs_root_dir / LOGS_DIR / f"{config.logger.name}-logger"
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if isinstance(config.logger, DisabledLoggerConf):
         exp_dir = logs_root_dir / f"{timestamp}"
     elif isinstance(config.logger, WandbConf):
