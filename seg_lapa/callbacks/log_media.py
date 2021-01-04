@@ -168,7 +168,7 @@ class LogMedia(Callback):
         # Save copy of config to logger
         if self.valid_logger:
             if isinstance(trainer.logger, pl_loggers.WandbLogger):
-                OmegaConf.save(self.cfg, Path(trainer.logger.save_dir) / "train.yaml")
+                OmegaConf.save(self.cfg, Path(trainer.logger.experiment.dir) / "train.yaml")
                 trainer.logger.experiment.save("*.yaml")
             else:
                 raise NotImplementedError
