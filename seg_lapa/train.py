@@ -1,9 +1,11 @@
 from typing import Any, List
 
 import hydra
+import numpy as np
 import pytorch_lightning as pl
 import wandb
 from omegaconf import DictConfig
+from pytorch_lightning import loggers as pl_loggers
 
 from seg_lapa import metrics
 from seg_lapa.callbacks.log_media import LogMediaQueue, Mode
@@ -16,10 +18,11 @@ from seg_lapa.utils.utils import is_rank_zero
 class DeeplabV3plus(pl.LightningModule, ParseConfig):
     def __init__(self, cfg: DictConfig, log_media_max_batches=1):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters()  # Will save the config to wandb too
+        # Accessing cfg via hparams allows value to be loaded from checkpoints
+        self.config = self.parse_config(self.hparams.cfg)
 
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
-        self.config = self.parse_config(cfg)
         self.model = self.config.model.get_model()
 
         self.iou_train = metrics.Iou(num_classes=self.config.model.num_classes)
@@ -49,12 +52,12 @@ class DeeplabV3plus(pl.LightningModule, ParseConfig):
         loss = self.cross_entropy_loss(outputs, labels)
 
         """Log the value on GPU0 per step. Also log average of all steps at epoch_end."""
-        # self.log("Train/loss", loss, on_step=True, on_epoch=True)
+        self.log("Train/loss", loss, on_step=True, on_epoch=True)
         """Log the avg. value across all GPUs per step. Also log average of all steps at epoch_end.
         Alternately, you can use the ops 'sum' or 'avg'.
         Using sync_dist is efficient. It adds extremely minor overhead for scalar values.
         """
-        self.log("Train/loss", loss, on_step=True, on_epoch=True, sync_dist=True, sync_dist_op="avg")
+        # self.log("Train/loss", loss, on_step=True, on_epoch=True, sync_dist=True, sync_dist_op="avg")
 
         # Calculate Metrics
         self.iou_train(predictions, labels)
@@ -72,7 +75,7 @@ class DeeplabV3plus(pl.LightningModule, ParseConfig):
 
         # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
-        self.log("Val/loss", loss, sync_dist=True, sync_dist_op="avg")
+        self.log("Val/loss", loss)
 
         # Calculate Metrics
         self.iou_val(predictions, labels)
@@ -89,7 +92,7 @@ class DeeplabV3plus(pl.LightningModule, ParseConfig):
 
         # Calculate Loss
         loss = self.cross_entropy_loss(outputs, labels)
-        self.log("Test/loss", loss, sync_dist=True, sync_dist_op="avg")
+        self.log("Test/loss", loss)
 
         # Calculate Metrics
         self.iou_test(predictions, labels)
@@ -115,7 +118,37 @@ class DeeplabV3plus(pl.LightningModule, ParseConfig):
         # Compute and log metrics across epoch
         metrics_avg = self.iou_test.compute()
         self.log("Test/mIoU", metrics_avg.miou)
+        self.log("Test/Accuracy", metrics_avg.accuracy.mean())
+        self.log("Test/Precision", metrics_avg.precision.mean())
+        self.log("Test/Recall", metrics_avg.recall.mean())
+
+        # Save test results as a Table (WandB)
+        self.log_results_table_wandb(metrics_avg)
         self.iou_test.reset()
+
+    def log_results_table_wandb(self, metrics_avg: metrics.IouMetric):
+        if not isinstance(self.logger, pl_loggers.WandbLogger):
+            return
+
+        results = metrics.IouMetric(
+            iou_per_class=metrics_avg.iou_per_class.cpu().numpy(),
+            miou=metrics_avg.miou.cpu().numpy(),
+            accuracy=metrics_avg.accuracy.cpu().numpy().mean(),
+            precision=metrics_avg.precision.cpu().numpy().mean(),
+            recall=metrics_avg.recall.cpu().numpy().mean(),
+            specificity=metrics_avg.specificity.cpu().numpy().mean(),
+        )
+
+        data = np.stack(
+            [results.miou, results.accuracy, results.precision, results.recall, results.specificity], axis=0
+        )
+        data_l = [round(x.item(), 4) for x in data]
+        table = wandb.Table(data=data_l, columns=["mIoU", "Accuracy", "Precision", "Recall", "Specificity"])
+        self.logger.experiment.log({f"Test/Results": table}, commit=False)
+
+        data = np.stack((np.arange(results.iou_per_class.shape[0]), results.iou_per_class)).T
+        table = wandb.Table(data=data.round(decimals=4).tolist(), columns=["Class ID", "IoU"])
+        self.logger.experiment.log({f"Test/IoU_per_class": table}, commit=False)
 
     def configure_optimizers(self):
         optimizer = self.config.optimizer.get_optimizer(self.parameters())

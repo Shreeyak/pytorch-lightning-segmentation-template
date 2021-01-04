@@ -82,19 +82,24 @@ class Iou(metrics.Metric):
         # Calculate Intersection over Union (IoU)
         eps = 1e-6
         iou_per_class = (tp + eps) / (fn + fp + tp + eps)  # Use epsilon to avoid zero division errors
+        iou_per_class[torch.isnan(iou_per_class)] = 0
         mean_iou = iou_per_class.mean()
 
         # Accuracy (what proportion of predictions — both Positive and Negative — were correctly classified?)
         accuracy = (tp + tn) / (tp + fp + fn + tn)
+        accuracy[torch.isnan(accuracy)] = 0
 
         # Precision (what proportion of predicted Positives is truly Positive?)
         precision = tp / (tp + fp)
+        precision[torch.isnan(precision)] = 0
 
         # Recall or True Positive Rate (what proportion of actual Positives is correctly classified?)
         recall = tp / (tp + fn)
+        recall[torch.isnan(recall)] = 0
 
         # Specificity or true negative rate
         specificity = tn / (tn + fp)
+        specificity[torch.isnan(specificity)] = 0
 
         data_r = IouMetric(
             iou_per_class=iou_per_class,
