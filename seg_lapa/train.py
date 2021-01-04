@@ -6,28 +6,28 @@ import wandb
 from omegaconf import DictConfig
 
 from seg_lapa import metrics
-from seg_lapa.config_parse import train_conf
-from seg_lapa.config_parse.train_conf import TrainConf
+from seg_lapa.config_parse.train_conf import ParseConfig
 from seg_lapa.loss_func import CrossEntropy2D
-from seg_lapa.utils.path_check import get_project_root
 from seg_lapa.callbacks.log_media import Mode, LogMediaQueue
 from seg_lapa.utils.utils import is_rank_zero
 from seg_lapa.utils import utils
 
 
-class DeeplabV3plus(pl.LightningModule):
-    def __init__(self, config: TrainConf, log_media_max_batches=1):
+class DeeplabV3plus(pl.LightningModule, ParseConfig):
+    def __init__(self, cfg: DictConfig, log_media_max_batches=1):
         super().__init__()
+        self.save_hyperparameters()
+
         self.cross_entropy_loss = CrossEntropy2D(loss_per_image=True, ignore_index=255)
-        self.config = config
+        self.config = self.parse_config(cfg)
         self.model = self.config.model.get_model()
 
-        self.iou_train = metrics.Iou(num_classes=config.model.num_classes)
-        self.iou_val = metrics.Iou(num_classes=config.model.num_classes)
-        self.iou_test = metrics.Iou(num_classes=config.model.num_classes)
+        self.iou_train = metrics.Iou(num_classes=self.config.model.num_classes)
+        self.iou_val = metrics.Iou(num_classes=self.config.model.num_classes)
+        self.iou_test = metrics.Iou(num_classes=self.config.model.num_classes)
 
-        # Returning images from _step methods is memory-expensive. Save predictions to be logged in a circular queue
-        # to be consumed in a callback.
+        # Logging media such a images using `self.log()` is extremely memory-expensive.
+        # Save predictions to be logged within a circular queue, to be consumed in the LogMedia callback.
         self.log_media: LogMediaQueue = LogMediaQueue(log_media_max_batches)
 
     def forward(self, x):
@@ -144,7 +144,7 @@ def main(cfg: DictConfig):
     # if is_rank_zero():
     #     print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
 
-    config = train_conf.parse_config(cfg)
+    config = ParseConfig.parse_config(cfg)
     if is_rank_zero():
         print("\nResolved Dataclass:\n", config, "\n")
 
@@ -153,9 +153,15 @@ def main(cfg: DictConfig):
 
     wb_logger = config.logger.get_logger(cfg, config.logs_root_dir)
     callbacks = config.callbacks.get_callbacks_list(exp_dir, cfg)
-    trainer = config.trainer.get_trainer(wb_logger, callbacks, config.logs_root_dir)
-    model = DeeplabV3plus(config)
     dm = config.dataset.get_datamodule()
+
+    # Load weights
+    if config.load_weights.path is None:
+        model = DeeplabV3plus(cfg)
+    else:
+        model = DeeplabV3plus.load_from_checkpoint(config.load_weights.path, cfg=cfg)
+
+    trainer = config.trainer.get_trainer(wb_logger, callbacks, config.logs_root_dir)
 
     # Run Training
     trainer.fit(model, datamodule=dm)

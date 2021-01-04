@@ -23,6 +23,7 @@ class EarlyStopConf:
 
 @dataclass(frozen=True)
 class CheckpointConf:
+    filename: Optional[str]
     monitor: Optional[str]
     mode: str
     save_last: Optional[bool]
