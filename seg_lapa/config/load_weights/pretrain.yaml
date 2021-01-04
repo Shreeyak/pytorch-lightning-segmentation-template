@@ -1,0 +1,5 @@
+# @package _group_
+name: load_weights
+
+# Use this to load pre-train weights (such as model pretrained on pascal dataset)
+path: null

@@ -159,7 +159,7 @@ class LogMedia(Callback):
         if self.verbose:
             pl_module.print(
                 f"Initializing Callback {LogMedia.__name__}. "
-                f"Logging to disk: {self.exp_dir if self.save_to_disk else False}."
+                f"Logging to disk: {self.exp_dir if self.save_to_disk else False}"
             )
 
         self._create_log_dir()

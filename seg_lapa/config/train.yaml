@@ -1,5 +1,5 @@
-random_seed: 0  # If None, seeds not set. If int, uses value to seed.
-logs_root_dir: './'  # Where to save logs and checkpoints.
+random_seed: 0 # If None, seeds not set. If int, uses value to seed.
+logs_root_dir: "./" # Where to save logs and checkpoints.
 
 defaults:
   - dataset: lapa
@@ -9,6 +9,7 @@ defaults:
   - scheduler: disabled
   - logger: wandb
   - callbacks: standard
+  - load_weights: disabled
 
   # To disable any .log files
   - hydra/job_logging: disabled
