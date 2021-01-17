@@ -13,8 +13,14 @@
 
 ## Description
 
-This an example project showcasing Pytorch Lightning for semantic segmentation of the
+This an example project showcasing [Pytorch Lightning](https://www.pytorchlightning.ai/) for training,
+[hydra](https://hydra.cc/) for the configuration system and [wandb](https://wandb.ai/) (Weights and Biases) for logging.
+
+The project tackles a more realistic setting than MNIST by demonstrating segmentation of facial regions on the
 [LaPa dataset](https://github.com/JDAI-CV/lapa-dataset) with Deeplabv3+.
+
+![logging](scripts/sample-wandb-logging.png)
+
 
 ## Install
 
@@ -51,10 +57,11 @@ The other files describing pre-commit hooks are: `pyproject.toml`, `.pre-commit-
 
 ## Usage
 
-Download the Lapa dataset at https://github.com/JDAI-CV/lapa-dataset  
+Download the Lapa dataset from https://github.com/JDAI-CV/lapa-dataset  
 It can be placed at `seg_lapa/data`.
 
-Run training.
+Run training. See the [hydra documentation](https://hydra.cc/docs/advanced/override_grammar/basic)
+on how to override the config values from the CLI.
 
 ```bash
 # Run training
@@ -156,6 +163,12 @@ Modify these methods after adding your logger to the config system:
 - `LogMedia._log_images_to_wandb()` - If logging media such as images
 
 ### Notes
+
+#### Pre-commit workflow
+
+The project uses pre-commit hooks for `black` and `prettier`, which are auto-format tools for `.py` and
+`.yaml | .md` files respectively. After pushing code to a branch, the formatter will automatically run
+and apply changes to submitted code.
 
 #### Absolute imports
 

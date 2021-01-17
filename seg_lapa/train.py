@@ -4,7 +4,7 @@ import hydra
 import numpy as np
 import pytorch_lightning as pl
 import wandb
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning import loggers as pl_loggers
 
 from seg_lapa import metrics
@@ -174,8 +174,8 @@ class DeeplabV3plus(pl.LightningModule, ParseConfig):
 
 @hydra.main(config_path="config", config_name="train")
 def main(cfg: DictConfig):
-    # if is_rank_zero():
-    #     print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
+    if is_rank_zero():
+        print("\nGiven Config:\n", OmegaConf.to_yaml(cfg))
 
     config = ParseConfig.parse_config(cfg)
     if is_rank_zero():
