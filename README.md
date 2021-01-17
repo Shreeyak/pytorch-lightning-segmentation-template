@@ -1,8 +1,8 @@
 ---
 
-<div align="center">  
+<div align="center">
 
-# Sementation Lapa  
+# Sementation Lapa
 
 [![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
 [![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/book/advances-in-neural-information-processing-systems-31-2018)  
@@ -11,27 +11,30 @@
 
 </div>
 
+## Description
 
-## Description  
 This an example project showcasing Pytorch Lightning for semantic segmentation of the
-[LaPa dataset](https://github.com/JDAI-CV/lapa-dataset) with Deeplabv3+.  
+[LaPa dataset](https://github.com/JDAI-CV/lapa-dataset) with Deeplabv3+.
 
-## Install  
-First, install dependencies  
+## Install
+
+First, install dependencies
+
 ```shell script
-# clone project  
+# clone project
 git clone git@github.com:Shreeyak/pytorch-lightning-segmentation-lapa.git
 
 # install project in development mode
 cd pytorch-lightning-segmentation-lapa
-pip install -e .  
+pip install -e .
 
 # Setup git precommits
 pip install -r requirements-dev.txt
 pre-commit install
-```  
+```
 
 #### Note: Cuda 11, Dec 2020
+
 As of Dec 2020, systems using Cuda 11 (such as those with Ampere GPUs)
 need to use different syntax to install pytorch. For such systems, install
 the correct version of pytorch using:
@@ -41,26 +44,30 @@ pip install -r requirements-cuda11.txt
 ```
 
 #### Developer dependencies
+
 This repository uses git pre-commit hooks to auto-format code.
 These developer dependencies are in requirements-dev.txt.
 The other files describing pre-commit hooks are: `pyproject.toml`, `.pre-commit-config.yaml`
 
-
 ## Usage
+
 Download the Lapa dataset at https://github.com/JDAI-CV/lapa-dataset  
 It can be placed at `seg_lapa/data`.
 
-Run training.  
- ```bash
+Run training.
+
+```bash
 # Run training
-python -m seg_lapa.train dataset.data_dir=<path_to_data>  
+python -m seg_lapa.train dataset.data_dir=<path_to_data>
 
 # Run on multiple gpus
-python -m seg_lapa.train dataset.data_dir=<path_to_data> train.gpus=\"0,1\"  
+python -m seg_lapa.train dataset.data_dir=<path_to_data> train.gpus=\"0,1\"
 ```
 
 ## Using this template for your own project
+
 To use this template for your own project:
+
 1. Search and replace `seg_lapa` with your project name
 2. Edit setup.py with new package name, requirements and other details
 3. Replace the model, dataloaders, loss function, metric with your own!
@@ -78,7 +85,7 @@ as needed. The following callbacks are added as of now:
 
 - [Early Stopping](https://pytorch-lightning.readthedocs.io/en/latest/generated/pytorch_lightning.callbacks.EarlyStopping.html#pytorch_lightning.callbacks.EarlyStopping)
 - [Model Checkpoint](https://pytorch-lightning.readthedocs.io/en/latest/generated/pytorch_lightning.callbacks.ModelCheckpoint.html#pytorch_lightning.callbacks.ModelCheckpoint)
-- [Log Media](#logmedia)  
+- [Log Media](#logmedia)
 
 CLI override Examples:
 
@@ -98,17 +105,17 @@ fetched within the `LogMedia` callback and logged to the logger and/or disk.
 
 To customize this callback for your application, override or modify the following methods:
 
- - `LogMedia._get_preds_from_lightningmodule()`
- - `LogMedia.__save_media_to_disk()`
- - `LogMedia.__save_media_to_logger()`
- - The LightningModule should have an attribute of type `LogMediaQueue` called `self.log_media`.
- Change the data that you push into the queue in train/val/test steps as per requirement.
+- `LogMedia._get_preds_from_lightningmodule()`
+- `LogMedia.__save_media_to_disk()`
+- `LogMedia.__save_media_to_logger()`
+- The LightningModule should have an attribute of type `LogMediaQueue` called `self.log_media`.
+  Change the data that you push into the queue in train/val/test steps as per requirement.
 
 ##### Notes:
 
 - LogMedia currently supports the Weights and Biases logger only.
 - By default, LogMedia only saves the latest samples to disk. To save the results from each step/epoch, pass
-`save_latest_only=False`.
+  `save_latest_only=False`.
 
 #### EarlyStopping
 
@@ -137,7 +144,7 @@ Args:
 #### ModelCheckpoint
 
 This is also Lightning's built-in callback to save checkpoints. It can monitor a logged value and save best checkpoints,
- save the latest checkpoint or save checkpoints every N steps/epoch.  
+save the latest checkpoint or save checkpoints every N steps/epoch.  
 We save checkpoints in our own logs directory structure, which is different from Lightning's default.
 
 ### Loggers
@@ -149,10 +156,12 @@ Modify these methods after adding your logger to the config system:
 - `LogMedia._log_images_to_wandb()` - If logging media such as images
 
 ### Notes
+
 #### Absolute imports
+
 This project is setup as a package. One of the advantages of setting it up as a
- package is that it is easy to import modules from anywhere.
- To avoid errors with pytorch-lightning, always use absolute imports:
+package is that it is easy to import modules from anywhere.
+To avoid errors with pytorch-lightning, always use absolute imports:
 
 ```python
 from seg_lapa.loss_func import CrossEntropy2D
@@ -160,8 +169,8 @@ from seg_lapa import metrics
 import seg_lapa.metrics as metrics
 ```
 
+### Citation
 
-### Citation  
 ```
 @article{YourName,
   title={Your Title},
@@ -169,4 +178,4 @@ import seg_lapa.metrics as metrics
   journal={Location},
   year={Year}
 }
-```  
+```

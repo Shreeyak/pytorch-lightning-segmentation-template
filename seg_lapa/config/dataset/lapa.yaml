@@ -1,6 +1,6 @@
 # @package _group_
 name: lapa
-data_dir: '/home/gaini/lightning/LaPa'
+data_dir: "/home/gaini/lightning/LaPa"
 batch_size: 16
 num_workers: 4
 resize_h: 256
