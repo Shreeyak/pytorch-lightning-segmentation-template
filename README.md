@@ -85,7 +85,7 @@ as needed. The following callbacks are added as of now:
 
 - [Early Stopping](https://pytorch-lightning.readthedocs.io/en/latest/generated/pytorch_lightning.callbacks.EarlyStopping.html#pytorch_lightning.callbacks.EarlyStopping)
 - [Model Checkpoint](https://pytorch-lightning.readthedocs.io/en/latest/generated/pytorch_lightning.callbacks.ModelCheckpoint.html#pytorch_lightning.callbacks.ModelCheckpoint)
-- [Log Media](#logmedia)  
+- [Log Media](#logmedia)
 
 CLI override Examples:
 
@@ -105,17 +105,17 @@ fetched within the `LogMedia` callback and logged to the logger and/or disk.
 
 To customize this callback for your application, override or modify the following methods:
 
- - `LogMedia._get_preds_from_lightningmodule()`
- - `LogMedia.__save_media_to_disk()`
- - `LogMedia.__save_media_to_logger()`
- - The LightningModule should have an attribute of type `LogMediaQueue` called `self.log_media`.
- Change the data that you push into the queue in train/val/test steps as per requirement.
+- `LogMedia._get_preds_from_lightningmodule()`
+- `LogMedia.__save_media_to_disk()`
+- `LogMedia.__save_media_to_logger()`
+- The LightningModule should have an attribute of type `LogMediaQueue` called `self.log_media`.
+  Change the data that you push into the queue in train/val/test steps as per requirement.
 
 ##### Notes:
 
 - LogMedia currently supports the Weights and Biases logger only.
 - By default, LogMedia only saves the latest samples to disk. To save the results from each step/epoch, pass
-`save_latest_only=False`.
+  `save_latest_only=False`.
 
 #### EarlyStopping
 
@@ -144,7 +144,7 @@ Args:
 #### ModelCheckpoint
 
 This is also Lightning's built-in callback to save checkpoints. It can monitor a logged value and save best checkpoints,
- save the latest checkpoint or save checkpoints every N steps/epoch.  
+save the latest checkpoint or save checkpoints every N steps/epoch.  
 We save checkpoints in our own logs directory structure, which is different from Lightning's default.
 
 ### Loggers
