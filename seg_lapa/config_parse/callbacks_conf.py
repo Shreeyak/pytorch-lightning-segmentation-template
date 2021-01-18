@@ -30,7 +30,7 @@ class CallbacksConf(ABC):
 
 @dataclass(frozen=True)
 class DisabledCallbacksConf(CallbacksConf):
-    def get_callbacks_list(self) -> List:
+    def get_callbacks_list(self, *args) -> List:
         return []
 
 
