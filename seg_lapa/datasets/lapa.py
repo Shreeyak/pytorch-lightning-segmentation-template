@@ -200,19 +200,34 @@ class LaPaDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         train_loader = DataLoader(
-            self.lapa_train, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, drop_last=True
+            self.lapa_train,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+            drop_last=True,
+            worker_init_fn=self._dataloader_worker_init,
         )
         return train_loader
 
     def val_dataloader(self):
         val_loader = DataLoader(
-            self.lapa_val, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, drop_last=False
+            self.lapa_val,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+            drop_last=False,
+            worker_init_fn=self._dataloader_worker_init,
         )
         return val_loader
 
     def test_dataloader(self):
         test_loader = DataLoader(
-            self.lapa_test, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True, drop_last=False
+            self.lapa_test,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+            drop_last=False,
+            worker_init_fn=self._dataloader_worker_init,
         )
         return test_loader
 
@@ -236,7 +251,8 @@ class LaPaDataModule(pl.LightningDataModule):
         )
         return augs_train
 
-    def _dataloader_worker_init(_: int):
+    @staticmethod
+    def _dataloader_worker_init(*args):
         """Seeds the workers within the Dataloader"""
         worker_seed = torch.initial_seed() % 2 ** 32
         np.random.seed(worker_seed)
