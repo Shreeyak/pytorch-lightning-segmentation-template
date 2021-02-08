@@ -28,11 +28,11 @@ If using Ampere GPUs (RTX 3090), then CUDA 11.1 is required. Some libraries thro
 install with CUDA 11.0 (unsupported gpu architecture 'compute_86'). This error is solved by moving to
 CUDA 11.1.
 
-#### Note: Pytorch and CUDA, Feb 2021
+### Install Pytorch as per CUDA (Feb 2021)
 
 Install Pytorch (`torch` and `torchvision`) before installing the other dependencies.
 
-##### CUDA 11.1
+#### CUDA 11.1
 
 `pytorch` and `torchvision` need to be installed from source. Check:
 
@@ -45,7 +45,7 @@ Install Pytorch (`torch` and `torchvision`) before installing the other dependen
 sudo apt install libturbojpeg libpng-dev libjpeg-dev
 ```
 
-##### CUDA 11.0
+#### CUDA 11.0
 
 Systems with Cuda 11.0 (such as those with Ampere GPUs):
 
@@ -53,7 +53,7 @@ Systems with Cuda 11.0 (such as those with Ampere GPUs):
 pip install -r requirements-cuda11_0.txt
 ```
 
-##### CUDA 10.x
+#### CUDA 10.x
 
 System with CUDA 10.x:
 
@@ -61,7 +61,7 @@ System with CUDA 10.x:
 pip install -r requirements-cuda10.txt
 ```
 
-#### Install project package and dependencies
+### Install project package and dependencies
 
 ```shell script
 # clone project
