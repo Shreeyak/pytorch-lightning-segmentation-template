@@ -12,9 +12,10 @@ setup(
     url="https://github.com/Shreeyak/pytorch-lightning-segmentation-template",
     python_requires=">=3.7.7",
     install_requires=[
+        # Install torch first, depending on cuda version
+        # "torch==1.7.1",
+        # "torchvision==0.8.2",
         "pytorch-lightning==1.1.2",
-        "torch==1.7.1",
-        "torchvision==0.8.2",
         "gdown==3.12.2",
         "albumentations==0.5.2",
         "opencv-python==4.4.0.44",
