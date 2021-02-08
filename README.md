@@ -22,9 +22,46 @@ The project tackles a more realistic setting than MNIST by demonstrating segment
 ![logging](scripts/sample-wandb-logging.png)
 
 
-## Install
+## Install  
 
-First, install dependencies
+If using Ampere GPUs (RTX 3090), then CUDA 11.1 is required. Some libraries throw error on trying to
+install with CUDA 11.0 (unsupported gpu architecture 'compute_86'). This error is solved by moving to
+CUDA 11.1.
+
+#### Note: Pytorch and CUDA, Feb 2021
+
+Install Pytorch (`torch` and `torchvision`) before installing the other dependencies.
+
+##### CUDA 11.1
+
+`pytorch` and `torchvision` need to be installed from source. Check:
+
+ - https://github.com/pytorch/pytorch#installation
+ - https://github.com/pytorch/vision
+
+ For torchvision, install system dependencies:
+
+ ```shell script
+sudo apt install libturbojpeg libpng-dev libjpeg-dev
+```
+
+##### CUDA 11.0
+
+Systems with Cuda 11.0 (such as those with Ampere GPUs):
+
+```shell script
+pip install -r requirements-cuda11_0.txt
+```
+
+##### CUDA 10.x
+
+System with CUDA 10.x:
+
+```shell script
+pip install -r requirements-cuda10.txt
+```
+
+#### Install project package and dependencies
 
 ```shell script
 # clone project
@@ -37,16 +74,6 @@ pip install -e .
 # Setup git precommits
 pip install -r requirements-dev.txt
 pre-commit install
-```
-
-#### Note: Cuda 11, Dec 2020
-
-As of Dec 2020, systems using Cuda 11 (such as those with Ampere GPUs)
-need to use different syntax to install pytorch. For such systems, install
-the correct version of pytorch using:
-
-```shell script
-pip install -r requirements-cuda11.txt
 ```
 
 #### Developer dependencies
