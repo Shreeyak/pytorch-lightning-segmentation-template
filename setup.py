@@ -21,7 +21,7 @@ setup(
         "opencv-python==4.4.0.44",
         "hydra-core==1.0.4",
         "wandb==0.10.12",
-        "pydantic==1.7.3",
+        "pydantic==1.7.4",
     ],
     packages=find_packages(),
 )
